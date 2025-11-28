@@ -9,7 +9,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     color: #333;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #807EBF 0%, #30348C 100%);
     min-height: 100vh;
 }
 
@@ -55,7 +55,7 @@ section h2 {
     color: #2c3e50;
     margin-bottom: 20px;
     padding-bottom: 10px;
-    border-bottom: 3px solid #3498db;
+    border-bottom: 3px solid #F2541B;
 }
 
 /* Form styles */
@@ -84,7 +84,7 @@ textarea {
 
 textarea:focus {
     outline: none;
-    border-color: #3498db;
+    border-color: #F2541B;
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
@@ -102,7 +102,7 @@ textarea:focus {
 }
 
 .btn-primary {
-    background: #3498db;
+    background: #F2541B;
     color: white;
 }
 
