@@ -1,6 +1,8 @@
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
+import json
+from ai_promts import get_instruction
 
 load_dotenv()
 
@@ -18,25 +20,39 @@ client = OpenAI(
     project=folder_id
 )
 
+
 async def analyze_mail(email):
     try:
         response = client.responses.create(
             model=model,
-            instructions="""Ты - AI-классификатор писем. 
-                    Определи тип входящего письма и верни ОДНО слово из списка:
-                    - COMPLAINT (жалоба)
-                    - INQUIRY (запрос информации)
-                    - ORDER (заказ)
-                    - SUPPORT (техподдержка)
-                    - SPAM (спам)
-                    - OTHER (другое)
-                    Не добавляй никаких пояснений.""",
+            instructions="""Ты — AI-ассистент службы поддержки банка. 
+    Проанализируй входящее письмо и верни результат В ФОРМАТЕ JSON с двумя полями: email_type и deadline.
+    email_type - выбери ОДИН вариант:
+    - COMPLAINT (жалоба)
+    - INQUIRY (запрос информации) 
+    - APPLICATION (заявка на услугу)
+    - SUPPORT (техподдержка)
+    - CLARIFICATION (уточнение)
+    - OTHER (другое)
+    
+    deadline - если в письме указана дата ответа, верни в формате ГГГГ-ММ-ДД, иначе null.
+    
+    Верни ТОЛЬКО JSON без пояснений. Пример: {"email_type": "COMPLAINT", "deadline": "2024-05-25"}""",
             input=email,
             temperature=0.1
         )
 
-        return response.output_text.strip().upper()
+        result_text = response.output_text.strip()
 
+        result = json.loads(result_text)
+
+        if "email_type" not in result or "deadline" not in result:
+            raise ValueError("Invalid response structure from API")
+
+        return result
+
+    except json.JSONDecodeError as e:
+        raise Exception(f"Failed to parse API response as JSON: {str(e)}")
     except Exception as e:
         raise Exception(f"Yandex API error: {str(e)}")
 
@@ -51,3 +67,10 @@ async def generate_mail(email, instructions):
 
     except Exception as e:
         raise Exception(f"Yandex API error: {str(e)}")
+
+async def generate_answer(incoming_letter, instr):
+    email_analisys = await analyze_mail(incoming_letter)
+    email_type = email_analisys["email_type"]
+    instruction = get_instruction(email_type)
+    r = await generate_mail(incoming_letter, instructions=instruction)
+    return r

@@ -3,88 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banking Assistant - ИИ-ассистент для деловой переписки</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Email Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            font-family: Arial, sans-serif;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+            display: none;
+        }
+        .loading {
+            display: none;
+            color: #007bff;
+            margin: 10px 0;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 12px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🏦 Banking Assistant</h1>
-            <p>ИИ-ассистент для генерации деловой переписки</p>
-        </header>
+        <h1>Генератор ответных писем</h1>
+        <p>Введите текст входящего письма:</p>
 
-        <main>
-            <section class="upload-section">
-                <h2>📝 Анализ входящего письма</h2>
-                <div class="form-group">
-                    <label for="letter-text">Текст входящего письма:</label>
-                    <textarea id="letter-text" placeholder="Вставьте текст письма для анализа..."></textarea>
-                </div>
-                <button id="analyze-btn" class="btn btn-primary">🔍 Анализировать письмо</button>
-            </section>
+        <textarea id="emailInput" placeholder="Введите текст письма здесь..."></textarea>
+        <br>
+        <button id="generateBtn">Сгенерировать ответ</button>
 
-            <section class="results-section" id="results-section" style="display: none;">
-                <h2>📊 Результаты анализа</h2>
-                <div class="analysis-card">
-                    <h3>Тип письма:</h3>
-                    <p id="letter-type">-</p>
-                </div>
-                <div class="analysis-card">
-                    <h3>Ключевые параметры:</h3>
-                    <ul id="key-params"></ul>
-                </div>
-                <div class="analysis-card">
-                    <h3>Срочность:</h3>
-                    <p id="urgency">-</p>
-                </div>
-            </section>
+        <div id="loading" class="loading">
+            ⏳ Генерация письма...
+        </div>
 
-            <section class="response-section" id="response-section" style="display: none;">
-                <h2>✍️ Генерация ответа</h2>
-                <div class="style-selector">
-                    <h3>Выберите стиль ответа:</h3>
-                    <div class="style-buttons">
-                        <button class="style-btn active" data-style="official">Официальный</button>
-                        <button class="style-btn" data-style="business">Деловой</button>
-                        <button class="style-btn" data-style="client">Клиентоориентированный</button>
-                    </div>
-                </div>
-                <button id="generate-btn" class="btn btn-success">🚀 Сгенерировать ответ</button>
+        <div id="error" class="error"></div>
 
-                <div class="response-output" id="response-output" style="display: none;">
-                    <h3>Сгенерированный ответ:</h3>
-                    <div class="response-text" id="response-text"></div>
-                    <div class="response-actions">
-                        <button id="approve-btn" class="btn btn-success">✅ Одобрить</button>
-                        <button id="edit-btn" class="btn btn-warning">✏️ Редактировать</button>
-                    </div>
-                </div>
-            </section>
-
-            <section class="workflow-section" id="workflow-section" style="display: none;">
-                <h2>⚙️ Процесс согласования</h2>
-                <div class="workflow-steps">
-                    <div class="step" id="step-draft">
-                        <div class="step-icon">📝</div>
-                        <div class="step-text">Черновик</div>
-                    </div>
-                    <div class="step" id="step-review">
-                        <div class="step-icon">👁️</div>
-                        <div class="step-text">На согласовании</div>
-                    </div>
-                    <div class="step" id="step-approved">
-                        <div class="step-icon">✅</div>
-                        <div class="step-text">Одобрено</div>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <p>&copy; 2025 Команда Pixel - AI Challenge: Banking</p>
-        </footer>
+        <div id="result" class="result">
+            <h3>Сгенерированный ответ:</h3>
+            <div id="generatedEmail"></div>
+        </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('generateBtn');
+            const emailInput = document.getElementById('emailInput');
+            const loading = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const resultDiv = document.getElementById('result');
+            const generatedEmail = document.getElementById('generatedEmail');
+
+            generateBtn.addEventListener('click', async function() {
+                const emailText = emailInput.value.trim();
+
+                // Валидация
+                if (!emailText) {
+                    showError('Пожалуйста, введите текст письма');
+                    return;
+                }
+
+                // Сброс состояний
+                hideError();
+                hideResult();
+                setLoading(true);
+
+                try {
+                    console.log('Отправка POST запроса...');
+
+                    const response = await fetch('http://127.0.0.1:8001/mail_generator', {
+                        method: 'POST',  // ← Важно: POST метод
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: emailText
+                        })
+                    });
+
+                    console.log('Статус ответа:', response.status);
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('Данные получены:', data);
+
+                    // Показываем результат
+                    generatedEmail.textContent = data.content;
+                    resultDiv.style.display = 'block';
+
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showError(`Ошибка: ${error.message}`);
+                } finally {
+                    setLoading(false);
+                }
+            });
+
+            function setLoading(isLoading) {
+                generateBtn.disabled = isLoading;
+                generateBtn.textContent = isLoading ? 'Генерация...' : 'Сгенерировать ответ';
+                loading.style.display = isLoading ? 'block' : 'none';
+            }
+
+            function showError(message) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+
+            function hideError() {
+                errorDiv.style.display = 'none';
+            }
+
+            function hideResult() {
+                resultDiv.style.display = 'none';
+            }
+
+            // Отправка по Ctrl+Enter
+            emailInput.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    generateBtn.click();
+                }
+            });
+        });
+    </script>
 </body>
-</html>
+</html>  
