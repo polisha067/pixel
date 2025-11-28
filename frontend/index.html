@@ -3,37 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ИИ-ассистент для ответов на письма</title>
+    <title>Pixel - ИИ-ассистент для ответов на письма</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>ИИ-ассистент для ответов на письма</h1>
-            <p>Введите текст входящего письма и получите готовый ответ</p>
-        </header>
+    <header class="main-header">
+        <div class="header-content">
+            <svg class="envelope-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4H4C2.9 4 2.01 4.9 2.01 6L2 18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13L4 8V6L12 11L20 6V8Z" fill="white" stroke="white" stroke-width="1.5"/>
+            </svg>
+            <h1 class="logo">Pixel</h1>
+        </div>
+    </header>
 
-        <main>
-            <section class="input-section">
-                <div class="form-group">
-                    <label for="letter-text">Текст входящего письма:</label>
-                    <textarea id="letter-text" placeholder="Вставьте текст письма для генерации ответа..."></textarea>
+    <main class="main-content">
+        <div class="content-wrapper">
+            <div class="illustration-section">
+                <div class="illustration-container">
+                    <div class="monitor">
+                        <div class="monitor-screen">
+                            <div class="screen-content">
+                                <div class="code-lines">
+                                    <div class="code-line"></div>
+                                    <div class="code-line"></div>
+                                    <div class="code-line short"></div>
+                                </div>
+                                <div class="flowchart">
+                                    <div class="flow-box"></div>
+                                    <div class="flow-arrow"></div>
+                                    <div class="flow-box"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="person-illustration">
+                        <div class="person-body">
+                            <div class="person-head"></div>
+                            <div class="person-torso"></div>
+                            <div class="person-legs"></div>
+                            <div class="laptop"></div>
+                            <div class="thumbs-up"></div>
+                        </div>
+                    </div>
+                    <div class="gear-icon"></div>
                 </div>
-                <button id="generate-btn" class="btn btn-primary">Сгенерировать ответ</button>
-            </section>
+            </div>
 
-            <section class="response-section" id="response-section" style="display: none;">
-                <h2>Сгенерированный ответ:</h2>
-                <div class="response-output">
-                    <div class="response-text" id="response-text"></div>
+            <div class="form-section">
+                <div class="form-card">
+                    <h2 class="form-title">ИИ-ассистент для ответов на письма</h2>
+                    <div class="form-group">
+                        <textarea id="letter-text" placeholder="Вставьте текст письма для генерации ответа..."></textarea>
+                    </div>
+                    <button id="generate-btn" class="btn btn-primary">Отправить</button>
                 </div>
-            </section>
-        </main>
 
-        <footer>
-            <p>&copy; 2025 ИИ-ассистент на базе Yandex Cloud от молодой команды pixel</p>
-        </footer>
-    </div>
+                <section class="response-section" id="response-section" style="display: none;">
+                    <div class="response-output">
+                        <h3>Сгенерированный ответ:</h3>
+                        <div class="response-text" id="response-text"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
 
     <script src="/static/script.js"></script>
 </body>
