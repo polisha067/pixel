@@ -9,7 +9,7 @@ from models import (
     LetterCreate, LetterResponse, LetterListResponse, StatsResponse,
     User, Letter, UserType, LetterStatus
 )
-from ai_funcs import generate_mail, analyze_mail
+from ai_funcs import generate_mail, analyze_mail, generate_answer
 from database import get_db, init_db, verify_password, get_password_hash
 import uvicorn
 import os
@@ -388,12 +388,6 @@ async def get_stats(
     
     return StatsResponse(total_completed=total_completed)
 
-# Старый endpoint для совместимости
-async def generate_answer(incoming_letter):
-    email_type = await analyze_mail(incoming_letter)
-    r = await generate_mail(incoming_letter, instructions=f"Write a {email_type} letter answering to this, you are employee in the bank PSB.")
-    return r
-
 @app.post('/mail_generator', response_model=EmailResponse)
 async def mail_generator(request: MailRequest):
     try:
@@ -404,7 +398,7 @@ async def mail_generator(request: MailRequest):
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("Starting FastAPI server on http://0.0.0.0:8001")
+    print("Starting FastAPI server on http://127.0.0.1:8001")
     print(f"[INIT] Current working directory: {os.getcwd()}")
     print(f"[INIT] Script location: {__file__}")
     print(f"[INIT] BASE_DIR: {BASE_DIR}")
