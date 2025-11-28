@@ -9,13 +9,13 @@
 <body>
     <div class="container">
         <header>
-            <h1>👤 Панель клиента банка</h1>
+            <h1>Панель клиента банка</h1>
             <button class="btn btn-warning" onclick="logout()" style="float: right; margin-top: -50px;">Выйти</button>
         </header>
 
         <main>
             <section class="input-section">
-                <h2>📝 Отправить письмо</h2>
+                <h2>Отправить письмо</h2>
                 <div class="form-group">
                     <label for="letter-text">Текст письма:</label>
                     <textarea id="letter-text" placeholder="Введите текст вашего письма..."></textarea>
@@ -24,7 +24,7 @@
             </section>
 
             <section class="letters-section">
-                <h2>📬 Мои письма</h2>
+                <h2> Мои письма</h2>
                 <div id="letters-list"></div>
             </section>
         </main>
@@ -53,10 +53,10 @@
 
                 listDiv.innerHTML = data.letters.map(letter => {
                     const statusText = {
-                        'pending': '⏳ Ожидает обработки',
-                        'in_work': '🔄 В работе',
-                        'response_ready': '✅ Ответ готов',
-                        'completed': '✔️ Завершено'
+                        'pending': 'Ожидает обработки',
+                        'in_work': 'В работе',
+                        'response_ready': 'Ответ готов',
+                        'completed': 'Завершено'
                     }[letter.status] || letter.status;
 
                     let actions = '';
