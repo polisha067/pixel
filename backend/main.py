@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException
 from models import MailRequest, EmailResponse
-from message_generation import generate_mail
+from ai_funcs import generate_mail, analyze_mail
 import uvicorn
 
 
@@ -22,8 +22,10 @@ async def mail_generator(request: MailRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating email: {str(e)}")
 
-def generate_answer(incoming_letter):
-    return generate_mail(incoming_letter, instructions="Write a letter answering to this, you are employee in the bank PSB.")
+async def generate_answer(incoming_letter):
+    email_type = await analyze_mail(incoming_letter)
+    r = await generate_mail(incoming_letter, instructions=f"Write a {email_type} letter answering to this, you are employee in the bank PSB.")
+    return r
 
 if __name__ == '__main__':
-    uvicorn.run(app, host='127.0.0.1', port=8000)
+    uvicorn.run(app, host='127.0.0.1', port=8001)
