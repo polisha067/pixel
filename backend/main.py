@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from models import (
     MailRequest, EmailResponse, UserRegister, UserLogin, 
     LetterCreate, LetterResponse, LetterListResponse, StatsResponse,
-    User, Letter, UserType, LetterStatus
+    LetterUpdateResponse, User, Letter, UserType, LetterStatus, get_msk_now
 )
 from ai_funcs import generate_answer
 from database import get_db, init_db, verify_password, get_password_hash
@@ -32,7 +32,11 @@ async def global_exception_handler(request, exc):
 # Инициализация базы данных
 try:
     print("[INIT] Initializing database...")
-    init_db()
+    # Проверяем переменную окружения для сброса БД (только для разработки!)
+    reset_db = os.getenv('RESET_DB', 'false').lower() == 'true'
+    if reset_db:
+        print("[INIT] WARNING: RESET_DB=true - database will be reset!")
+    init_db(reset_db=reset_db)
     print("[INIT] Database initialized successfully")
 except Exception as e:
     print(f"[INIT] Error initializing database: {str(e)}")
@@ -189,7 +193,8 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
         # Простая сессия (в продакшене использовать JWT)
-        session_id = f"{user.id}_{datetime.now().timestamp()}"
+        from models import get_msk_now
+        session_id = f"{user.id}_{get_msk_now().timestamp()}"
         user_sessions[session_id] = user.id
         print(f"[LOGIN] Login successful: {credentials.username}, session: {session_id}")
         
@@ -260,15 +265,16 @@ async def get_my_letters(
             content=letter.content,
             status=letter.status.value,
             response=letter.response,
-            created_at=letter.created_at.isoformat(),
-            updated_at=letter.updated_at.isoformat()
+            employee_id=letter.employee_id,
+            created_at=letter.created_at.isoformat() if letter.created_at else "",
+            updated_at=letter.updated_at.isoformat() if letter.updated_at else ""
         )
         for letter in letters
     ]
     
     return LetterListResponse(letters=letter_responses)
 
-# Клиент: одобрить ответ
+# Сотрудник: одобрить ответ
 @app.post('/api/letters/{letter_id}/approve')
 async def approve_letter(
     letter_id: int,
@@ -276,13 +282,16 @@ async def approve_letter(
     db: Session = Depends(get_db)
 ):
     user = get_current_user(session_id, db)
+    if user.user_type != UserType.EMPLOYEE:
+        raise HTTPException(status_code=403, detail="Only employees can approve letters")
+    
     letter = db.query(Letter).filter(Letter.id == letter_id).first()
     
     if not letter:
         raise HTTPException(status_code=404, detail="Letter not found")
     
-    if letter.author_id != user.id:
-        raise HTTPException(status_code=403, detail="Not your letter")
+    if letter.employee_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your letter to approve")
     
     if letter.status != LetterStatus.RESPONSE_READY:
         raise HTTPException(status_code=400, detail="Letter is not ready for approval")
@@ -310,8 +319,9 @@ async def get_all_letters(
             content=letter.content,
             status=letter.status.value,
             response=letter.response,
-            created_at=letter.created_at.isoformat(),
-            updated_at=letter.updated_at.isoformat()
+            employee_id=letter.employee_id,
+            created_at=letter.created_at.isoformat() if letter.created_at else "",
+            updated_at=letter.updated_at.isoformat() if letter.updated_at else ""
         )
         for letter in letters
     ]
@@ -365,6 +375,7 @@ async def process_letter(
         generated_response = await generate_answer(letter.content)
         letter.response = generated_response
         letter.status = LetterStatus.RESPONSE_READY
+        letter.updated_at = get_msk_now()
         db.commit()
         
         return {
@@ -373,6 +384,71 @@ async def process_letter(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing letter: {str(e)}")
+
+# Сотрудник: обновить ответ (редактировать)
+@app.put('/api/letters/{letter_id}/response')
+async def update_letter_response(
+    letter_id: int,
+    response_data: LetterUpdateResponse,
+    session_id: str = Header(..., alias="X-Session-ID"),
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(session_id, db)
+    if user.user_type != UserType.EMPLOYEE:
+        raise HTTPException(status_code=403, detail="Only employees can update responses")
+    
+    letter = db.query(Letter).filter(Letter.id == letter_id).first()
+    if not letter:
+        raise HTTPException(status_code=404, detail="Letter not found")
+    
+    if letter.employee_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your letter to update")
+    
+    if letter.status not in [LetterStatus.IN_WORK, LetterStatus.RESPONSE_READY]:
+        raise HTTPException(status_code=400, detail="Letter is not in editable state")
+    
+    letter.response = response_data.response
+    letter.status = LetterStatus.RESPONSE_READY
+    letter.updated_at = get_msk_now()
+    db.commit()
+    
+    return {"message": "Response updated successfully"}
+
+# Сотрудник: перегенерировать ответ
+@app.post('/api/letters/{letter_id}/regenerate')
+async def regenerate_letter_response(
+    letter_id: int,
+    session_id: str = Header(..., alias="X-Session-ID"),
+    db: Session = Depends(get_db)
+):
+    user = get_current_user(session_id, db)
+    if user.user_type != UserType.EMPLOYEE:
+        raise HTTPException(status_code=403, detail="Only employees can regenerate responses")
+    
+    letter = db.query(Letter).filter(Letter.id == letter_id).first()
+    if not letter:
+        raise HTTPException(status_code=404, detail="Letter not found")
+    
+    if letter.employee_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your letter to regenerate")
+    
+    if letter.status not in [LetterStatus.IN_WORK, LetterStatus.RESPONSE_READY]:
+        raise HTTPException(status_code=400, detail="Letter is not in regeneratable state")
+    
+    try:
+        # Генерация нового ответа через нейронку
+        generated_response = await generate_answer(letter.content)
+        letter.response = generated_response
+        letter.status = LetterStatus.RESPONSE_READY
+        letter.updated_at = get_msk_now()
+        db.commit()
+        
+        return {
+            "message": "Response regenerated successfully",
+            "response": generated_response
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error regenerating response: {str(e)}")
 
 # Статистика завершенных писем
 @app.get('/api/stats', response_model=StatsResponse)

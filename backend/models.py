@@ -6,6 +6,26 @@ from datetime import datetime
 import enum
 import os
 
+# Московское время - используем zoneinfo (Python 3.9+) или pytz как fallback
+try:
+    from zoneinfo import ZoneInfo
+    MSK_TZ = ZoneInfo("Europe/Moscow")
+except (ImportError, ModuleNotFoundError):
+    try:
+        import pytz
+        MSK_TZ = pytz.timezone("Europe/Moscow")
+    except ImportError:
+        # Если ничего не установлено, используем UTC (не идеально, но работает)
+        print("[WARNING] Neither zoneinfo nor pytz available, using UTC for timezone")
+        MSK_TZ = None
+
+def get_msk_now():
+    """Возвращает текущее время в московском часовом поясе"""
+    if MSK_TZ is None:
+        # Fallback на UTC если нет timezone библиотек
+        return datetime.utcnow()
+    return datetime.now(MSK_TZ)
+
 # База данных
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'bank_system.db')}"
@@ -34,7 +54,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     user_type = Column(SQLEnum(UserType), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: get_msk_now())
     
     # Письма, которые пользователь отправил (как автор)
     letters = relationship(
@@ -60,8 +80,8 @@ class Letter(Base):
     response = Column(String, nullable=True)
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     employee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: get_msk_now())
+    updated_at = Column(DateTime, default=lambda: get_msk_now(), onupdate=lambda: get_msk_now())
     
     author = relationship("User", foreign_keys=[author_id], back_populates="letters")
     employee = relationship("User", foreign_keys=[employee_id], back_populates="assigned_letters")
@@ -91,6 +111,7 @@ class LetterResponse(BaseModel):
     content: str
     status: str
     response: str | None
+    employee_id: int | None
     created_at: str
     updated_at: str
 
@@ -99,3 +120,6 @@ class LetterListResponse(BaseModel):
 
 class StatsResponse(BaseModel):
     total_completed: int
+
+class LetterUpdateResponse(BaseModel):
+    response: str

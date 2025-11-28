@@ -35,18 +35,44 @@ def get_db():
     finally:
         db.close()
 
-def init_db():
+def init_db(reset_db=False):
+    """
+    Инициализирует базу данных, создавая таблицы только если их еще нет.
+    Данные сохраняются между перезапусками.
+    
+    Args:
+        reset_db: Если True, удаляет все таблицы и создает заново (только для разработки!)
+    """
     try:
-        # Удаляем старые таблицы и создаем заново (для разработки)
-        # В продакшене использовать миграции!
-        Base.metadata.drop_all(bind=engine)
+        # Проверяем, существуют ли таблицы
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        if reset_db and existing_tables:
+            print("[DB] WARNING: Resetting database (all data will be lost!)")
+            Base.metadata.drop_all(bind=engine)
+            print("[DB] All tables dropped")
+            existing_tables = []
+        
+        # Создаем таблицы только если их еще нет
         Base.metadata.create_all(bind=engine)
-        print("[DB] Database tables created successfully")
+        
+        if existing_tables:
+            print(f"[DB] Database tables already exist: {existing_tables}")
+            print("[DB] Existing data will be preserved")
+        else:
+            print("[DB] Database tables created successfully")
     except Exception as e:
-        print(f"[DB] Error creating database: {str(e)}")
-        # Если не удалось удалить, просто создаем
-        Base.metadata.create_all(bind=engine)
-        print("[DB] Database tables created (some may already exist)")
+        print(f"[DB] Error initializing database: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Пытаемся создать таблицы в любом случае
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("[DB] Database tables created (fallback)")
+        except Exception as e2:
+            print(f"[DB] Failed to create tables: {str(e2)}")
 
 def verify_password(plain_password, hashed_password):
     """

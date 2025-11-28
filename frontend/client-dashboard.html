@@ -55,20 +55,18 @@
                     const statusText = {
                         'pending': '⏳ Ожидает обработки',
                         'in_work': '🔄 В работе',
-                        'response_ready': '✅ Ответ готов',
+                        'response_ready': '✅ Ответ готов (ожидает одобрения сотрудником)',
                         'completed': '✔️ Завершено'
                     }[letter.status] || letter.status;
 
                     let actions = '';
-                    if (letter.status === 'response_ready') {
-                        actions = `<button class="btn btn-success" onclick="approveLetter(${letter.id})">Одобрить ответ</button>`;
-                    }
+                    // Клиент больше не одобряет письма - это делает сотрудник
 
                     return `
                         <div class="letter-card">
                             <div class="letter-header">
                                 <span class="letter-status">${statusText}</span>
-                                <span class="letter-date">${new Date(letter.created_at).toLocaleString('ru-RU')}</span>
+                                <span class="letter-date">${formatMSKTime(letter.created_at)}</span>
                             </div>
                             <div class="letter-content">
                                 <strong>Письмо:</strong>
@@ -121,27 +119,18 @@
             }
         }
 
-        async function approveLetter(letterId) {
-            if (!confirm('Одобрить ответ и завершить письмо?')) return;
-
-            try {
-                const response = await fetch(`/api/letters/${letterId}/approve`, {
-                    method: 'POST',
-                    headers: {
-                        'X-Session-ID': sessionId
-                    }
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    alert('Письмо завершено!');
-                    loadLetters();
-                } else {
-                    alert('Ошибка: ' + data.detail);
-                }
-            } catch (error) {
-                alert('Ошибка: ' + error.message);
-            }
+        // Форматирование времени в MSK
+        function formatMSKTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleString('ru-RU', { 
+                timeZone: 'Europe/Moscow',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
 
         function logout() {

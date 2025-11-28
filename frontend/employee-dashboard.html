@@ -5,6 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Панель сотрудника</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        .loading-indicator {
+            display: none;
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .loading-indicator.active {
+            display: block;
+        }
+        .response-editor {
+            margin-top: 10px;
+        }
+        .response-editor textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .response-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .letter-card {
+            position: relative;
+        }
+        .generating-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 8px;
+        }
+        .generating-overlay.active {
+            display: flex;
+        }
+        .generating-overlay .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -30,8 +93,43 @@
 
     <script>
         const sessionId = localStorage.getItem('session_id');
+        const currentUserIdStr = localStorage.getItem('user_id');
+        const currentUserId = currentUserIdStr ? parseInt(currentUserIdStr, 10) : null;
         if (!sessionId) {
             window.location.href = '/login.html';
+        }
+        
+        // Предупреждение, если user_id не установлен
+        if (!currentUserId) {
+            console.warn('user_id не найден в localStorage. Возможно, нужно перелогиниться.');
+        }
+
+        // Хранилище для редактируемых ответов
+        const editingResponses = {};
+        
+        // Хранилище данных писем для доступа к ним
+        let lettersData = [];
+
+        // Форматирование времени в MSK
+        function formatMSKTime(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleString('ru-RU', { 
+                timeZone: 'Europe/Moscow',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Экранирование HTML для безопасного отображения в textarea
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         async function loadStats() {
@@ -57,6 +155,9 @@
                 });
                 const data = await response.json();
                 
+                // Сохраняем данные писем для доступа к ним
+                lettersData = data.letters;
+                
                 const listDiv = document.getElementById('letters-list');
                 if (data.letters.length === 0) {
                     listDiv.innerHTML = '<p>Нет писем</p>';
@@ -72,34 +173,156 @@
                     }[letter.status] || letter.status;
 
                     let actions = '';
+                    let responseSection = '';
+                    
+                    // Проверяем, редактируется ли этот ответ
+                    const isEditing = editingResponses[letter.id];
+                    const currentResponse = isEditing !== undefined ? isEditing : (letter.response || '');
+
+                    // Отладочная информация (можно удалить после проверки)
+                    if (letter.status === 'in_work') {
+                        console.log(`Letter ${letter.id}: status=${letter.status}, employee_id=${letter.employee_id} (${typeof letter.employee_id}), currentUserId=${currentUserId} (${typeof currentUserId}), match=${letter.employee_id == currentUserId}`);
+                    }
+
                     if (letter.status === 'pending') {
                         actions = `<button class="btn btn-primary" onclick="takeLetter(${letter.id})">Взять в работу</button>`;
                     } else if (letter.status === 'in_work') {
-                        actions = `<button class="btn btn-success" onclick="processLetter(${letter.id})">Обработать (сгенерировать ответ)</button>`;
+                        // Проверяем, что письмо взято текущим сотрудником
+                        // Приводим оба значения к числам для надежного сравнения
+                        const letterEmployeeId = letter.employee_id != null ? Number(letter.employee_id) : null;
+                        const myUserId = currentUserId != null ? Number(currentUserId) : null;
+                        const isMyLetter = letterEmployeeId !== null && myUserId !== null && letterEmployeeId === myUserId;
+                        
+                        if (isMyLetter) {
+                            // Письмо взято текущим сотрудником
+                            // Всегда показываем кнопку генерации (или перегенерации, если ответ уже есть)
+                            if (!letter.response) {
+                                // Если ответа еще нет, показываем кнопку генерации
+                                actions = `
+                                    <div class="response-actions">
+                                        <button class="btn btn-success" onclick="processLetter(${letter.id})" id="process-btn-${letter.id}">
+                                            🚀 Сгенерировать ответ
+                                        </button>
+                                    </div>
+                                `;
+                            } else {
+                                // Если ответ уже есть, показываем его с возможностью редактирования
+                                responseSection = `
+                                    <div class="letter-response">
+                                        <strong>Ответ:</strong>
+                                        ${isEditing ? `
+                                            <div class="response-editor">
+                                                <textarea id="response-edit-${letter.id}">${currentResponse}</textarea>
+                                                <div class="response-actions">
+                                                    <button class="btn btn-primary" onclick="saveResponse(${letter.id})">Сохранить</button>
+                                                    <button class="btn btn-secondary" onclick="cancelEdit(${letter.id})">Отмена</button>
+                                                    <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})">🔄 Перегенерировать</button>
+                                                    <button class="btn btn-success" onclick="approveLetter(${letter.id})">✅ Одобрить</button>
+                                                </div>
+                                            </div>
+                                        ` : `
+                                            <div id="response-display-${letter.id}">
+                                                <p>${letter.response}</p>
+                                                <div class="response-actions">
+                                                    <button class="btn btn-primary" onclick="startEditFromButton(${letter.id})">✏️ Редактировать</button>
+                                                    <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})">🔄 Перегенерировать</button>
+                                                    <button class="btn btn-success" onclick="approveLetter(${letter.id})">✅ Одобрить</button>
+                                                </div>
+                                            </div>
+                                        `}
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            // Письмо взято другим сотрудником
+                            actions = `<p style="color: #666;">Письмо в работе у другого сотрудника</p>`;
+                            if (letter.response) {
+                                responseSection = `
+                                    <div class="letter-response">
+                                        <strong>Ответ:</strong>
+                                        <p>${letter.response}</p>
+                                    </div>
+                                `;
+                            }
+                        }
+                    } else if (letter.status === 'response_ready') {
+                        // Проверяем, что письмо принадлежит текущему сотруднику
+                        const letterEmployeeId = letter.employee_id != null ? Number(letter.employee_id) : null;
+                        const myUserId = currentUserId != null ? Number(currentUserId) : null;
+                        const isMyLetter = letterEmployeeId !== null && myUserId !== null && letterEmployeeId === myUserId;
+                        
+                        if (isMyLetter) {
+                        responseSection = `
+                            <div class="letter-response">
+                                <strong>Ответ:</strong>
+                                ${isEditing ? `
+                                    <div class="response-editor">
+                                        <textarea id="response-edit-${letter.id}">${currentResponse}</textarea>
+                                        <div class="response-actions">
+                                            <button class="btn btn-primary" onclick="saveResponse(${letter.id})">Сохранить</button>
+                                            <button class="btn btn-secondary" onclick="cancelEdit(${letter.id})">Отмена</button>
+                                            <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})">🔄 Перегенерировать</button>
+                                            <button class="btn btn-success" onclick="approveLetter(${letter.id})">✅ Одобрить</button>
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div id="response-display-${letter.id}">
+                                        <p>${letter.response}</p>
+                                        <div class="response-actions">
+                                            <button class="btn btn-primary" onclick="startEditFromButton(${letter.id})">✏️ Редактировать</button>
+                                            <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})">🔄 Перегенерировать</button>
+                                            <button class="btn btn-success" onclick="approveLetter(${letter.id})">✅ Одобрить</button>
+                                        </div>
+                                    </div>
+                                `}
+                            </div>
+                        `;
+                        } else {
+                            // Письмо готово, но принадлежит другому сотруднику - показываем только ответ
+                            responseSection = `
+                                <div class="letter-response">
+                                    <strong>Ответ:</strong>
+                                    <p>${letter.response}</p>
+                                    <p style="color: #666; font-size: 0.9em;">Обработано другим сотрудником</p>
+                                </div>
+                            `;
+                        }
                     }
 
                     return `
-                        <div class="letter-card">
+                        <div class="letter-card" id="letter-card-${letter.id}">
+                            <div class="generating-overlay" id="generating-${letter.id}">
+                                <div>
+                                    <div class="spinner"></div>
+                                    <p style="margin-top: 10px;">Генерируется ответ...</p>
+                                </div>
+                            </div>
                             <div class="letter-header">
                                 <span class="letter-status">${statusText}</span>
-                                <span class="letter-date">${new Date(letter.created_at).toLocaleString('ru-RU')}</span>
+                                <span class="letter-date">${formatMSKTime(letter.created_at)}</span>
                             </div>
                             <div class="letter-content">
                                 <strong>Письмо:</strong>
                                 <p>${letter.content}</p>
                             </div>
-                            ${letter.response ? `
-                                <div class="letter-response">
-                                    <strong>Ответ:</strong>
-                                    <p>${letter.response}</p>
-                                </div>
-                            ` : ''}
+                            ${responseSection}
                             ${actions ? `<div class="letter-actions">${actions}</div>` : ''}
                         </div>
                     `;
                 }).join('');
             } catch (error) {
                 console.error('Error loading letters:', error);
+            }
+        }
+
+        function showGenerating(letterId, show = true) {
+            const overlay = document.getElementById(`generating-${letterId}`);
+            if (overlay) {
+                if (show) {
+                    overlay.classList.add('active');
+                } else {
+                    overlay.classList.remove('active');
+                }
             }
         }
 
@@ -127,6 +350,13 @@
         async function processLetter(letterId) {
             if (!confirm('Обработать письмо и сгенерировать ответ?')) return;
 
+            showGenerating(letterId, true);
+            const btn = document.getElementById(`process-btn-${letterId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Генерируется...';
+            }
+
             try {
                 const response = await fetch(`/api/letters/${letterId}/process`, {
                     method: 'POST',
@@ -138,6 +368,140 @@
                 const data = await response.json();
                 if (response.ok) {
                     alert('Письмо обработано! Ответ сгенерирован.');
+                    loadLetters();
+                } else {
+                    alert('Ошибка: ' + data.detail);
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            } finally {
+                showGenerating(letterId, false);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🚀 Сгенерировать ответ';
+                }
+            }
+        }
+
+        function startEdit(letterId, currentResponse) {
+            console.log('Starting edit for letter', letterId, 'with response:', currentResponse);
+            if (!currentResponse) {
+                console.error('No response provided for editing');
+                alert('Ошибка: не удалось получить текст ответа для редактирования');
+                return;
+            }
+            editingResponses[letterId] = currentResponse;
+            loadLetters();
+        }
+
+        function startEditFromButton(letterId) {
+            // Находим письмо в сохраненных данных
+            const letter = lettersData.find(l => l.id === letterId);
+            if (letter && letter.response) {
+                startEdit(letterId, letter.response);
+            } else {
+                // Если не нашли в данных, пытаемся получить из DOM
+                const responseDisplay = document.getElementById(`response-display-${letterId}`);
+                if (responseDisplay) {
+                    const responseText = responseDisplay.querySelector('p');
+                    if (responseText) {
+                        const currentResponse = responseText.textContent || responseText.innerText;
+                        startEdit(letterId, currentResponse);
+                    } else {
+                        alert('Не удалось найти текст ответа для редактирования');
+                    }
+                } else {
+                    alert('Не удалось найти ответ для редактирования');
+                }
+            }
+        }
+
+        function cancelEdit(letterId) {
+            delete editingResponses[letterId];
+            loadLetters();
+        }
+
+        async function saveResponse(letterId) {
+            const textarea = document.getElementById(`response-edit-${letterId}`);
+            if (!textarea) {
+                alert('Ошибка: поле редактирования не найдено');
+                return;
+            }
+
+            const newResponse = textarea.value.trim();
+            if (!newResponse) {
+                alert('Ответ не может быть пустым');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/letters/${letterId}/response`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': sessionId
+                    },
+                    body: JSON.stringify({
+                        response: newResponse
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    delete editingResponses[letterId];
+                    alert('Ответ сохранен!');
+                    loadLetters();
+                } else {
+                    alert('Ошибка: ' + data.detail);
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+
+        async function regenerateResponse(letterId) {
+            if (!confirm('Перегенерировать ответ? Текущий ответ будет заменен.')) return;
+
+            showGenerating(letterId, true);
+
+            try {
+                const response = await fetch(`/api/letters/${letterId}/regenerate`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    delete editingResponses[letterId];
+                    alert('Ответ перегенерирован!');
+                    loadLetters();
+                } else {
+                    alert('Ошибка: ' + data.detail);
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            } finally {
+                showGenerating(letterId, false);
+            }
+        }
+
+        async function approveLetter(letterId) {
+            if (!confirm('Одобрить ответ и завершить письмо?')) return;
+
+            try {
+                const response = await fetch(`/api/letters/${letterId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    delete editingResponses[letterId];
+                    alert('Письмо одобрено и завершено!');
                     loadLetters();
                 } else {
                     alert('Ошибка: ' + data.detail);
