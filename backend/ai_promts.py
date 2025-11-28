@@ -1,4 +1,19 @@
-def get_instruction(email_type):
+ANALISYS_PROMT = """Ты — AI-ассистент службы поддержки банка. 
+    Проанализируй входящее письмо и верни результат В ФОРМАТЕ JSON с двумя полями: email_type и deadline.
+    email_type - выбери ОДИН вариант:
+    - COMPLAINT (жалоба)
+    - INQUIRY (запрос информации) 
+    - APPLICATION (заявка на услугу)
+    - SUPPORT (техподдержка)
+    - CLARIFICATION (уточнение)
+    - OTHER (другое)
+
+    deadline - если в письме указана дата ответа, верни в формате ГГГГ-ММ-ДД, иначе null.
+
+    Верни ТОЛЬКО JSON без пояснений. Пример: {"email_type": "COMPLAINT", "deadline": "2024-05-25"}"""
+
+
+def get_generation_promt(email_type):
     INSTRUCTION = f"""Ты — AI-ассистент, сотрудник банка «ПСБ». Твоя задача — составить профессиональный ответный email клиенту на основе полученного сообщения.
 
     ИНСТРУКЦИЯ:

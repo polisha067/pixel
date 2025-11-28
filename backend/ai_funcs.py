@@ -1,8 +1,7 @@
 from openai import OpenAI
 from dotenv import load_dotenv
-import os
-import json
-from ai_promts import get_instruction
+import os, json
+from aipromts import ANALISYS_PROMT, get_generation_promt
 
 load_dotenv()
 
@@ -25,19 +24,7 @@ async def analyze_mail(email):
     try:
         response = client.responses.create(
             model=model,
-            instructions="""Ты — AI-ассистент службы поддержки банка. 
-    Проанализируй входящее письмо и верни результат В ФОРМАТЕ JSON с двумя полями: email_type и deadline.
-    email_type - выбери ОДИН вариант:
-    - COMPLAINT (жалоба)
-    - INQUIRY (запрос информации) 
-    - APPLICATION (заявка на услугу)
-    - SUPPORT (техподдержка)
-    - CLARIFICATION (уточнение)
-    - OTHER (другое)
-
-    deadline - если в письме указана дата ответа, верни в формате ГГГГ-ММ-ДД, иначе null.
-
-    Верни ТОЛЬКО JSON без пояснений. Пример: {"email_type": "COMPLAINT", "deadline": "2024-05-25"}""",
+            instructions=ANALISYS_PROMT,
             input=email,
             temperature=0.1
         )
@@ -56,7 +43,6 @@ async def analyze_mail(email):
     except Exception as e:
         raise Exception(f"Yandex API error: {str(e)}")
 
-
 async def generate_mail(email, instructions):
     try:
         response = client.responses.create(
@@ -69,10 +55,9 @@ async def generate_mail(email, instructions):
     except Exception as e:
         raise Exception(f"Yandex API error: {str(e)}")
 
-
 async def generate_answer(incoming_letter):
     email_analisys = await analyze_mail(incoming_letter)
     email_type = email_analisys["email_type"]
-    instruction = get_instruction(email_type)
+    instruction = get_generation_promt(email_type)
     r = await generate_mail(incoming_letter, instructions=instruction)
     return r
