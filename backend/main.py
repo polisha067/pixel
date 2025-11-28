@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from models import MailRequest, EmailResponse
-from ai_funcs import generate_mail, analyze_mail
+from ai_funcs import generate_answer
 import uvicorn
 import os
 
@@ -83,16 +83,11 @@ async def mail_generator(request: MailRequest):
             detail=f"Error generating email: {error_msg}"
         )
 
-async def generate_answer(incoming_letter):
-    email_type = await analyze_mail(incoming_letter)
-    r = await generate_mail(incoming_letter, instructions=f"Write a {email_type} letter answering to this, you are employee in the bank PSB.")
-    return r
-
 if __name__ == '__main__':
-    print("Starting FastAPI server on http://0.0.0.0:8001")
+    print("Starting FastAPI server on http://127.0.0.1:8001")
     print("Frontend should be available at http://localhost:8001")
     try:
-        uvicorn.run(app, host='0.0.0.0', port=8001, log_level='info')
+        uvicorn.run(app, host='127.0.0.1', port=8001, log_level='info')
     except Exception as e:
         print(f"Error starting server: {e}")
         raise
