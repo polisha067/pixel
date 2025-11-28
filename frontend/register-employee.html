@@ -29,6 +29,39 @@
                     <input type="password" id="password" required maxlength="70">
                 </div>
 
+                <div class="form-group">
+                    <label for="classification">Классификация писем (можно выбрать несколько):</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="COMPLAINT" class="classification-checkbox" style="margin-right: 8px;">
+                            <span>Жалобы (COMPLAINT)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="INQUIRY" class="classification-checkbox" style="margin-right: 8px;">
+                            <span>Запросы информации (INQUIRY)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="APPLICATION" class="classification-checkbox" style="margin-right: 8px;">
+                            <span>Заявки на услуги (APPLICATION)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="SUPPORT" class="classification-checkbox" style="margin-right: 8px;">
+                            <span>Техподдержка (SUPPORT)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="CLARIFICATION" class="classification-checkbox" style="margin-right: 8px;">
+                            <span>Уточнения (CLARIFICATION)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="OTHER" class="classification-checkbox" style="margin-right: 8px;">
+                            <span>Другое (OTHER)</span>
+                        </label>
+                    </div>
+                    <small style="color: #666; display: block; margin-top: 8px;">
+                        Выберите типы писем, которые вы будете обрабатывать. Если ничего не выбрано, вы будете видеть все письма.
+                    </small>
+                </div>
+
                 <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
             </form>
 
@@ -46,6 +79,11 @@
             const username = document.getElementById('username').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            
+            // Получаем выбранные классификации
+            const checkboxes = document.querySelectorAll('.classification-checkbox:checked');
+            const classifications = Array.from(checkboxes).map(cb => cb.value);
+            const classification = classifications.length > 0 ? classifications.join(',') : null;
 
             try {
                 const response = await fetch('/api/register', {
@@ -55,7 +93,8 @@
                         username,
                         email,
                         password,
-                        user_type: 'employee'
+                        user_type: 'employee',
+                        classification: classification
                     })
                 });
 

@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 from models import (
     MailRequest, EmailResponse, UserRegister, UserLogin, 
     LetterCreate, LetterResponse, LetterListResponse, StatsResponse,
-    LetterUpdateResponse, User, Letter, UserType, LetterStatus, get_msk_now
+    LetterUpdateResponse, User, Letter, UserType, LetterStatus, EmailType, get_msk_now, MSK_TZ
 )
-from ai_funcs import generate_answer
+from ai_funcs import generate_answer, analyze_mail
 from database import get_db, init_db, verify_password, get_password_hash
 import uvicorn
 import os
@@ -32,11 +32,9 @@ async def global_exception_handler(request, exc):
 # Инициализация базы данных
 try:
     print("[INIT] Initializing database...")
-    # Проверяем переменную окружения для сброса БД (только для разработки!)
-    reset_db = os.getenv('RESET_DB', 'false').lower() == 'true'
-    if reset_db:
-        print("[INIT] WARNING: RESET_DB=true - database will be reset!")
-    init_db(reset_db=reset_db)
+    # Всегда очищаем БД при запуске (данные хранятся только между перезапусками программы)
+    print("[INIT] Resetting database on startup (data will be cleared)")
+    init_db(reset_db=True)
     print("[INIT] Database initialized successfully")
 except Exception as e:
     print(f"[INIT] Error initializing database: {str(e)}")
@@ -158,7 +156,8 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
                 username=user_data.username,
                 email=user_data.email,
                 password_hash=password_hash,
-                user_type=UserType(user_data.user_type)
+                user_type=UserType(user_data.user_type),
+                classification=user_data.classification if user_data.user_type == "employee" else None
             )
             db.add(new_user)
             db.commit()
@@ -233,10 +232,67 @@ async def create_letter(
     if user.user_type != UserType.CLIENT:
         raise HTTPException(status_code=403, detail="Only clients can create letters")
     
+    # Получаем текущую дату создания письма
+    created_at = get_msk_now()
+    
+    # Анализируем письмо для определения классификации и дедлайна
+    email_type = None
+    deadline = None
+    try:
+        analysis = await analyze_mail(letter_data.content)
+        email_type_str = analysis.get("email_type")
+        deadline_str = analysis.get("deadline")
+        
+        if email_type_str:
+            try:
+                email_type = EmailType(email_type_str)
+            except ValueError:
+                email_type = EmailType.OTHER
+        
+        # Если дедлайн указан в письме, используем его
+        if deadline_str:
+            try:
+                # Парсим дату в формате ГГГГ-ММ-ДД
+                deadline = datetime.strptime(deadline_str, "%Y-%m-%d")
+                # Устанавливаем время на конец дня в MSK
+                deadline = deadline.replace(hour=23, minute=59, second=59)
+                if MSK_TZ:
+                    # Для pytz используем localize, для zoneinfo просто replace
+                    if hasattr(MSK_TZ, 'localize'):
+                        deadline = MSK_TZ.localize(deadline)
+                    else:
+                        deadline = deadline.replace(tzinfo=MSK_TZ)
+            except (ValueError, TypeError) as e:
+                print(f"[LETTER] Error parsing deadline: {e}")
+                deadline = None
+        
+        # Если дедлайн не указан в письме или не удалось распарсить, устанавливаем 10 дней от даты создания
+        if deadline is None:
+            from datetime import timedelta
+            deadline = created_at + timedelta(days=10)
+            # Устанавливаем время на конец дня
+            deadline = deadline.replace(hour=23, minute=59, second=59)
+            print(f"[LETTER] Deadline not specified, setting to 10 days from creation: {deadline}")
+            
+    except Exception as e:
+        print(f"[LETTER] Error analyzing letter: {e}")
+        # Продолжаем создание письма даже если анализ не удался
+        email_type = EmailType.OTHER
+        # Устанавливаем дедлайн 10 дней от даты создания
+        from datetime import timedelta
+        deadline = created_at + timedelta(days=10)
+        deadline = deadline.replace(hour=23, minute=59, second=59)
+        print(f"[LETTER] Analysis failed, setting default deadline: {deadline}")
+    
+    # Если классификация не определена, дедлайн все равно 10 дней (уже установлен выше)
+    
     new_letter = Letter(
         content=letter_data.content,
         status=LetterStatus.PENDING,
-        author_id=user.id
+        author_id=user.id,
+        email_type=email_type,
+        deadline=deadline,
+        created_at=created_at  # Явно устанавливаем дату создания
     )
     db.add(new_letter)
     db.commit()
@@ -244,7 +300,9 @@ async def create_letter(
     
     return {
         "message": "Letter created successfully",
-        "letter_id": new_letter.id
+        "letter_id": new_letter.id,
+        "email_type": email_type.value if email_type else None,
+        "deadline": deadline.isoformat() if deadline else None
     }
 
 # Клиент: получить свои письма
@@ -266,6 +324,8 @@ async def get_my_letters(
             status=letter.status.value,
             response=letter.response,
             employee_id=letter.employee_id,
+            email_type=letter.email_type.value if letter.email_type else None,
+            deadline=letter.deadline.isoformat() if letter.deadline else None,
             created_at=letter.created_at.isoformat() if letter.created_at else "",
             updated_at=letter.updated_at.isoformat() if letter.updated_at else ""
         )
@@ -311,7 +371,28 @@ async def get_all_letters(
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can view all letters")
     
-    letters = db.query(Letter).order_by(Letter.created_at.desc()).all()
+    # Фильтруем письма по классификации сотрудника
+    query = db.query(Letter)
+    
+    # Если у сотрудника указана классификация, фильтруем по ней
+    if user.classification:
+        # Классификация может быть через запятую (несколько типов)
+        classifications = [c.strip() for c in user.classification.split(',')]
+        # Фильтруем письма, которые соответствуют классификации сотрудника или не имеют классификации
+        from sqlalchemy import or_
+        conditions = []
+        for cls in classifications:
+            try:
+                email_type_enum = EmailType(cls)
+                conditions.append(Letter.email_type == email_type_enum)
+            except ValueError:
+                pass  # Пропускаем неверные значения
+        
+        if conditions:
+            query = query.filter(or_(*conditions, Letter.email_type.is_(None)))
+    # Если классификация не указана, сотрудник видит все письма
+    
+    letters = query.order_by(Letter.created_at.desc()).all()
     
     letter_responses = [
         LetterResponse(
@@ -320,6 +401,8 @@ async def get_all_letters(
             status=letter.status.value,
             response=letter.response,
             employee_id=letter.employee_id,
+            email_type=letter.email_type.value if letter.email_type else None,
+            deadline=letter.deadline.isoformat() if letter.deadline else None,
             created_at=letter.created_at.isoformat() if letter.created_at else "",
             updated_at=letter.updated_at.isoformat() if letter.updated_at else ""
         )

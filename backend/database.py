@@ -39,13 +39,14 @@ def init_db(reset_db=False):
     """
     Инициализирует базу данных, создавая таблицы только если их еще нет.
     Данные сохраняются между перезапусками.
+    Автоматически добавляет недостающие колонки при обновлении схемы.
     
     Args:
         reset_db: Если True, удаляет все таблицы и создает заново (только для разработки!)
     """
     try:
         # Проверяем, существуют ли таблицы
-        from sqlalchemy import inspect
+        from sqlalchemy import inspect, text
         inspector = inspect(engine)
         existing_tables = inspector.get_table_names()
         
@@ -57,6 +58,21 @@ def init_db(reset_db=False):
         
         # Создаем таблицы только если их еще нет
         Base.metadata.create_all(bind=engine)
+        
+        # Обновляем список существующих таблиц после создания
+        existing_tables_after = inspector.get_table_names()
+        
+        # Проверяем и добавляем недостающие колонки
+        if 'users' in existing_tables_after:
+            _add_missing_columns('users', [
+                ('classification', 'VARCHAR', 'NULL')
+            ])
+        
+        if 'letters' in existing_tables_after:
+            _add_missing_columns('letters', [
+                ('email_type', 'VARCHAR', 'NULL'),
+                ('deadline', 'DATETIME', 'NULL')
+            ])
         
         if existing_tables:
             print(f"[DB] Database tables already exist: {existing_tables}")
@@ -73,6 +89,37 @@ def init_db(reset_db=False):
             print("[DB] Database tables created (fallback)")
         except Exception as e2:
             print(f"[DB] Failed to create tables: {str(e2)}")
+
+def _add_missing_columns(table_name, columns):
+    """
+    Добавляет недостающие колонки в существующую таблицу.
+    
+    Args:
+        table_name: Имя таблицы
+        columns: Список кортежей (имя_колонки, тип, default)
+    """
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        existing_columns = [col['name'] for col in inspector.get_columns(table_name)]
+        
+        for col_name, col_type, col_default in columns:
+            if col_name not in existing_columns:
+                print(f"[DB] Adding missing column: {table_name}.{col_name}")
+                # SQLite поддерживает только ADD COLUMN с ограничениями
+                # Для NULL значений просто добавляем колонку без DEFAULT
+                if col_default == 'NULL':
+                    alter_sql = f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}"
+                else:
+                    alter_sql = f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type} DEFAULT {col_default}"
+                
+                with engine.begin() as conn:
+                    conn.execute(text(alter_sql))
+                print(f"[DB] Column {col_name} added successfully")
+    except Exception as e:
+        print(f"[DB] Error adding columns to {table_name}: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 def verify_password(plain_password, hashed_password):
     """

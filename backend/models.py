@@ -45,6 +45,15 @@ class LetterStatus(str, enum.Enum):
     RESPONSE_READY = "response_ready"  # Ответ готов, ожидает одобрения
     COMPLETED = "completed"  # Завершено
 
+# Enum для типа письма (классификация)
+class EmailType(str, enum.Enum):
+    COMPLAINT = "COMPLAINT"  # Жалоба
+    INQUIRY = "INQUIRY"  # Запрос информации
+    APPLICATION = "APPLICATION"  # Заявка на услугу
+    SUPPORT = "SUPPORT"  # Техподдержка
+    CLARIFICATION = "CLARIFICATION"  # Уточнение
+    OTHER = "OTHER"  # Другое
+
 # Модели базы данных
 class User(Base):
     __tablename__ = "users"
@@ -54,6 +63,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     user_type = Column(SQLEnum(UserType), nullable=False)
+    # Классификация для сотрудников (какие типы писем они обрабатывают)
+    classification = Column(String, nullable=True)  # Может быть несколько через запятую или null для всех
     created_at = Column(DateTime, default=lambda: get_msk_now())
     
     # Письма, которые пользователь отправил (как автор)
@@ -78,6 +89,9 @@ class Letter(Base):
     content = Column(String, nullable=False)
     status = Column(SQLEnum(LetterStatus), default=LetterStatus.PENDING)
     response = Column(String, nullable=True)
+    # Классификация письма
+    email_type = Column(SQLEnum(EmailType), nullable=True)  # Тип письма (классификация)
+    deadline = Column(DateTime, nullable=True)  # Дедлайн для ответа
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     employee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=lambda: get_msk_now())
@@ -98,6 +112,7 @@ class UserRegister(BaseModel):
     email: str
     password: str
     user_type: str
+    classification: str | None = None  # Классификация для сотрудников (через запятую или null)
 
 class UserLogin(BaseModel):
     username: str
@@ -112,6 +127,8 @@ class LetterResponse(BaseModel):
     status: str
     response: str | None
     employee_id: int | None
+    email_type: str | None  # Классификация письма
+    deadline: str | None  # Дедлайн в формате ISO
     created_at: str
     updated_at: str
 

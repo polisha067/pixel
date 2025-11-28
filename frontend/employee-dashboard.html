@@ -289,6 +289,45 @@
                         }
                     }
 
+                    // Форматирование дедлайна
+                    let deadlineDisplay = '';
+                    if (letter.deadline) {
+                        const deadlineDate = new Date(letter.deadline);
+                        const now = new Date();
+                        const daysLeft = Math.ceil((deadlineDate - now) / (1000 * 60 * 60 * 24));
+                        const deadlineFormatted = formatMSKTime(letter.deadline);
+                        
+                        let deadlineClass = 'deadline-normal';
+                        let deadlineIcon = '📅';
+                        if (daysLeft < 0) {
+                            deadlineClass = 'deadline-overdue';
+                            deadlineIcon = '⚠️';
+                        } else if (daysLeft <= 1) {
+                            deadlineClass = 'deadline-urgent';
+                            deadlineIcon = '🔥';
+                        } else if (daysLeft <= 3) {
+                            deadlineClass = 'deadline-warning';
+                            deadlineIcon = '⏰';
+                        }
+                        
+                        deadlineDisplay = `
+                            <div class="deadline-info ${deadlineClass}" style="margin: 10px 0; padding: 8px; border-radius: 4px; background: ${daysLeft < 0 ? '#fee' : daysLeft <= 1 ? '#fff3cd' : daysLeft <= 3 ? '#fff8dc' : '#e7f3ff'};">
+                                ${deadlineIcon} <strong>Дедлайн:</strong> ${deadlineFormatted} 
+                                ${daysLeft < 0 ? `(просрочено на ${Math.abs(daysLeft)} дн.)` : daysLeft === 0 ? '(сегодня)' : `(осталось ${daysLeft} дн.)`}
+                            </div>
+                        `;
+                    }
+                    
+                    // Отображение классификации
+                    const emailTypeText = {
+                        'COMPLAINT': 'Жалоба',
+                        'INQUIRY': 'Запрос информации',
+                        'APPLICATION': 'Заявка на услугу',
+                        'SUPPORT': 'Техподдержка',
+                        'CLARIFICATION': 'Уточнение',
+                        'OTHER': 'Другое'
+                    }[letter.email_type] || 'Не определено';
+                    
                     return `
                         <div class="letter-card" id="letter-card-${letter.id}">
                             <div class="generating-overlay" id="generating-${letter.id}">
@@ -301,6 +340,10 @@
                                 <span class="letter-status">${statusText}</span>
                                 <span class="letter-date">${formatMSKTime(letter.created_at)}</span>
                             </div>
+                            <div style="margin: 8px 0; padding: 6px; background: #f0f0f0; border-radius: 4px;">
+                                <strong>Классификация:</strong> ${emailTypeText}
+                            </div>
+                            ${deadlineDisplay}
                             <div class="letter-content">
                                 <strong>Письмо:</strong>
                                 <p>${letter.content}</p>
