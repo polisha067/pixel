@@ -319,3 +319,160 @@ footer {
     color: #004085;
     border: 1px solid #b3d7ff;
 }
+
+/* Registration cards */
+.registration-cards {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    margin: 40px 0;
+    flex-wrap: wrap;
+}
+
+.reg-card {
+    background: white;
+    border-radius: 15px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.reg-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.reg-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.reg-card h2 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.reg-card p {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+}
+
+/* Auth forms */
+.auth-form {
+    max-width: 400px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.auth-links a {
+    color: white;
+    text-decoration: none;
+    margin: 0 10px;
+    opacity: 0.9;
+}
+
+.auth-links a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Letter cards */
+.letter-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.letter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.letter-status {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.letter-date {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.letter-content,
+.letter-response {
+    margin: 15px 0;
+}
+
+.letter-content p,
+.letter-response p {
+    margin-top: 10px;
+    padding: 15px;
+    background: white;
+    border-radius: 5px;
+    white-space: pre-wrap;
+}
+
+.letter-actions {
+    margin-top: 15px;
+}
+
+/* Stats */
+.stats-section {
+    margin-bottom: 30px;
+}
+
+.stats-card {
+    background: #e3f2fd;
+    border: 2px solid #2196f3;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+.login-section {
+    text-align: center;
+    margin-top: 40px;
+    color: white;
+}
+
+.login-section h2 {
+    color: white;
+    margin-bottom: 20px;
+}

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 Вход в систему</h1>
+        </header>
+
+        <main>
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Имя пользователя:</label>
+                    <input type="text" id="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль:</label>
+                    <input type="password" id="password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Войти</button>
+            </form>
+
+            <div class="auth-links">
+                <a href="/">На главную</a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                // Проверяем тип контента
+                const contentType = response.headers.get('content-type');
+                let data;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // Если ответ не JSON, читаем как текст
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error(`Server error: ${response.status} ${response.statusText}. Check server logs.`);
+                }
+                
+                if (response.ok) {
+                    localStorage.setItem('session_id', data.session_id);
+                    localStorage.setItem('user_type', data.user_type);
+                    localStorage.setItem('user_id', data.user_id);
+                    
+                    if (data.user_type === 'client') {
+                        window.location.href = '/client-dashboard.html';
+                    } else {
+                        window.location.href = '/employee-dashboard.html';
+                    }
+                } else {
+                    alert('Ошибка: ' + (data.detail || data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Ошибка входа: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

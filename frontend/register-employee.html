@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация сотрудника</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👔 Регистрация сотрудника банка</h1>
+        </header>
+
+        <main>
+            <form id="register-form" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Имя пользователя:</label>
+                    <input type="text" id="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль (максимум 70 символов):</label>
+                    <input type="password" id="password" required maxlength="70">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+            </form>
+
+            <div class="auth-links">
+                <a href="/login.html">Уже есть аккаунт? Войти</a>
+                <a href="/">На главную</a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        email,
+                        password,
+                        user_type: 'employee'
+                    })
+                });
+
+                // Проверяем тип контента
+                const contentType = response.headers.get('content-type');
+                let data;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // Если ответ не JSON, читаем как текст
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error(`Server error: ${response.status} ${response.statusText}. Check server logs.`);
+                }
+                
+                if (response.ok) {
+                    alert('Регистрация успешна! Теперь войдите в систему.');
+                    window.location.href = '/login.html';
+                } else {
+                    alert('Ошибка: ' + (data.detail || data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Ошибка регистрации: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

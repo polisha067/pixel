@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель клиента</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>👤 Панель клиента банка</h1>
+            <button class="btn btn-warning" onclick="logout()" style="float: right; margin-top: -50px;">Выйти</button>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>📝 Отправить письмо</h2>
+                <div class="form-group">
+                    <label for="letter-text">Текст письма:</label>
+                    <textarea id="letter-text" placeholder="Введите текст вашего письма..."></textarea>
+                </div>
+                <button id="send-btn" class="btn btn-primary">Отправить письмо</button>
+            </section>
+
+            <section class="letters-section">
+                <h2>📬 Мои письма</h2>
+                <div id="letters-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const sessionId = localStorage.getItem('session_id');
+        if (!sessionId) {
+            window.location.href = '/login.html';
+        }
+
+        async function loadLetters() {
+            try {
+                const response = await fetch('/api/letters/my', {
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+                const data = await response.json();
+                
+                const listDiv = document.getElementById('letters-list');
+                if (data.letters.length === 0) {
+                    listDiv.innerHTML = '<p>У вас пока нет писем</p>';
+                    return;
+                }
+
+                listDiv.innerHTML = data.letters.map(letter => {
+                    const statusText = {
+                        'pending': '⏳ Ожидает обработки',
+                        'in_work': '🔄 В работе',
+                        'response_ready': '✅ Ответ готов',
+                        'completed': '✔️ Завершено'
+                    }[letter.status] || letter.status;
+
+                    let actions = '';
+                    if (letter.status === 'response_ready') {
+                        actions = `<button class="btn btn-success" onclick="approveLetter(${letter.id})">Одобрить ответ</button>`;
+                    }
+
+                    return `
+                        <div class="letter-card">
+                            <div class="letter-header">
+                                <span class="letter-status">${statusText}</span>
+                                <span class="letter-date">${new Date(letter.created_at).toLocaleString('ru-RU')}</span>
+                            </div>
+                            <div class="letter-content">
+                                <strong>Письмо:</strong>
+                                <p>${letter.content}</p>
+                            </div>
+                            ${letter.response ? `
+                                <div class="letter-response">
+                                    <strong>Ответ:</strong>
+                                    <p>${letter.response}</p>
+                                </div>
+                            ` : ''}
+                            ${actions ? `<div class="letter-actions">${actions}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading letters:', error);
+            }
+        }
+
+        async function sendLetter() {
+            const text = document.getElementById('letter-text').value.trim();
+            if (!text) {
+                alert('Введите текст письма');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/letters', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Session-ID': sessionId
+                    },
+                    body: JSON.stringify({
+                        content: text
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('letter-text').value = '';
+                    alert('Письмо отправлено!');
+                    loadLetters();
+                } else {
+                    alert('Ошибка: ' + data.detail);
+                }
+            } catch (error) {
+                alert('Ошибка отправки: ' + error.message);
+            }
+        }
+
+        async function approveLetter(letterId) {
+            if (!confirm('Одобрить ответ и завершить письмо?')) return;
+
+            try {
+                const response = await fetch(`/api/letters/${letterId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Session-ID': sessionId
+                    }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Письмо завершено!');
+                    loadLetters();
+                } else {
+                    alert('Ошибка: ' + data.detail);
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('session_id');
+            localStorage.removeItem('user_type');
+            localStorage.removeItem('user_id');
+            window.location.href = '/';
+        }
+
+        document.getElementById('send-btn').addEventListener('click', sendLetter);
+        loadLetters();
+        setInterval(loadLetters, 5000); // Обновление каждые 5 секунд
+    </script>
+</body>
+</html>

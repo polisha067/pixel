@@ -3,38 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ИИ-ассистент для ответов на письма</title>
+    <title>Банковская система - Главная</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>✉️ ИИ-ассистент для ответов на письма</h1>
-            <p>Введите текст входящего письма и получите готовый ответ</p>
+            <h1>🏦 Банковская система</h1>
+            <p>Выберите тип регистрации</p>
         </header>
 
         <main>
-            <section class="input-section">
-                <div class="form-group">
-                    <label for="letter-text">Текст входящего письма:</label>
-                    <textarea id="letter-text" placeholder="Вставьте текст письма для генерации ответа..."></textarea>
+            <div class="registration-cards">
+                <div class="reg-card">
+                    <div class="reg-icon">👤</div>
+                    <h2>Клиент банка</h2>
+                    <p>Регистрация для клиентов банка</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/register-client.html'">
+                        Зарегистрироваться
+                    </button>
                 </div>
-                <button id="generate-btn" class="btn btn-primary">🚀 Сгенерировать ответ</button>
-            </section>
 
-            <section class="response-section" id="response-section" style="display: none;">
-                <h2>📝 Сгенерированный ответ:</h2>
-                <div class="response-output">
-                    <div class="response-text" id="response-text"></div>
+                <div class="reg-card">
+                    <div class="reg-icon">👔</div>
+                    <h2>Сотрудник банка</h2>
+                    <p>Регистрация для сотрудников банка</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/register-employee.html'">
+                        Зарегистрироваться
+                    </button>
                 </div>
-            </section>
+            </div>
+
+            <div class="login-section">
+                <h2>Уже зарегистрированы?</h2>
+                <button class="btn btn-success" onclick="window.location.href='/login.html'">
+                    Войти
+                </button>
+            </div>
         </main>
 
         <footer>
-            <p>&copy; 2025 ИИ-ассистент на базе Yandex Cloud</p>
+            <p>&copy; 2025 Банковская система</p>
         </footer>
     </div>
-
-    <script src="/static/script.js"></script>
 </body>
 </html>
