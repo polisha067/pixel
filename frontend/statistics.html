@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика - ИИ-ассистент</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Статистика</h1>
+            <p class="subtitle">Аналитика обработки обращений</p>
+        </header>
+        
+        <nav style="margin-bottom: 20px;">
+            <button onclick="window.location.href='index.html'">← Назад</button>
+        </nav>
+        
+        <!-- Общая статистика -->
+        <section>
+            <h2>Общая статистика</h2>
+            <div id="overviewStats" class="stats-grid">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </section>
+        
+        <!-- Статистика по категориям -->
+        <section style="margin-top: 40px;">
+            <h2>Статистика по категориям</h2>
+            <div id="categoryStats">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </section>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/statistics.js"></script>
+</body>
+</html>
+
