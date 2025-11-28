@@ -1,7 +1,7 @@
 from openai import OpenAI
 from dotenv import load_dotenv
 import os, json
-from aipromts import ANALISYS_PROMT, get_generation_promt
+from ai_promts import ANALISYS_PROMT, get_generation_promt
 
 load_dotenv()
 

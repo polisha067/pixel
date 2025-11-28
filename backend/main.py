@@ -9,7 +9,7 @@ from models import (
     LetterCreate, LetterResponse, LetterListResponse, StatsResponse,
     User, Letter, UserType, LetterStatus
 )
-from ai_funcs import generate_mail, analyze_mail, generate_answer
+from ai_funcs import generate_answer
 from database import get_db, init_db, verify_password, get_password_hash
 import uvicorn
 import os
