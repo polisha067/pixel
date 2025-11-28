@@ -84,10 +84,10 @@ async def mail_generator(request: MailRequest):
         )
 
 if __name__ == '__main__':
-    print("Starting FastAPI server on http://0.0.0.0:8001")
+    print("Starting FastAPI server on http://127.0.0.1:8001")
     print("Frontend should be available at http://localhost:8001")
     try:
-        uvicorn.run(app, host='0.0.0.0', port=8001, log_level='info')
+        uvicorn.run(app, host='127.0.0.1', port=8001, log_level='info')
     except Exception as e:
         print(f"Error starting server: {e}")
         raise
