@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banking Assistant - ИИ-ассистент для деловой переписки</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏦 Banking Assistant</h1>
+            <p>ИИ-ассистент для генерации деловой переписки</p>
+        </header>
+
+        <main>
+            <section class="upload-section">
+                <h2>📝 Анализ входящего письма</h2>
+                <div class="form-group">
+                    <label for="letter-text">Текст входящего письма:</label>
+                    <textarea id="letter-text" placeholder="Вставьте текст письма для анализа..."></textarea>
+                </div>
+                <button id="analyze-btn" class="btn btn-primary">🔍 Анализировать письмо</button>
+            </section>
+
+            <section class="results-section" id="results-section" style="display: none;">
+                <h2>📊 Результаты анализа</h2>
+                <div class="analysis-card">
+                    <h3>Тип письма:</h3>
+                    <p id="letter-type">-</p>
+                </div>
+                <div class="analysis-card">
+                    <h3>Ключевые параметры:</h3>
+                    <ul id="key-params"></ul>
+                </div>
+                <div class="analysis-card">
+                    <h3>Срочность:</h3>
+                    <p id="urgency">-</p>
+                </div>
+            </section>
+
+            <section class="response-section" id="response-section" style="display: none;">
+                <h2>✍️ Генерация ответа</h2>
+                <div class="style-selector">
+                    <h3>Выберите стиль ответа:</h3>
+                    <div class="style-buttons">
+                        <button class="style-btn active" data-style="official">Официальный</button>
+                        <button class="style-btn" data-style="business">Деловой</button>
+                        <button class="style-btn" data-style="client">Клиентоориентированный</button>
+                    </div>
+                </div>
+                <button id="generate-btn" class="btn btn-success">🚀 Сгенерировать ответ</button>
+
+                <div class="response-output" id="response-output" style="display: none;">
+                    <h3>Сгенерированный ответ:</h3>
+                    <div class="response-text" id="response-text"></div>
+                    <div class="response-actions">
+                        <button id="approve-btn" class="btn btn-success">✅ Одобрить</button>
+                        <button id="edit-btn" class="btn btn-warning">✏️ Редактировать</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="workflow-section" id="workflow-section" style="display: none;">
+                <h2>⚙️ Процесс согласования</h2>
+                <div class="workflow-steps">
+                    <div class="step" id="step-draft">
+                        <div class="step-icon">📝</div>
+                        <div class="step-text">Черновик</div>
+                    </div>
+                    <div class="step" id="step-review">
+                        <div class="step-icon">👁️</div>
+                        <div class="step-text">На согласовании</div>
+                    </div>
+                    <div class="step" id="step-approved">
+                        <div class="step-icon">✅</div>
+                        <div class="step-text">Одобрено</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Команда Pixel - AI Challenge: Banking</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
