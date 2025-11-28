@@ -70,7 +70,7 @@ async def generate_mail(email, instructions):
         raise Exception(f"Yandex API error: {str(e)}")
 
 
-async def generate_answer(incoming_letter, instr):
+async def generate_answer(incoming_letter):
     email_analisys = await analyze_mail(incoming_letter)
     email_type = email_analisys["email_type"]
     instruction = get_instruction(email_type)
