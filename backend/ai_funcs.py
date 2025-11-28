@@ -47,7 +47,6 @@ async def generate_mail(email, instructions):
             instructions=instructions,
             input=email
         )
-
         return response.output_text
 
     except Exception as e:
