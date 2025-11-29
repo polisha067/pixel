@@ -557,7 +557,7 @@ async def mail_generator(request: MailRequest):
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("Starting FastAPI server on http://127.0.0.1:8001")
+    print("Starting FastAPI server on http://127.0.0.1:8002")
     print(f"[INIT] Current working directory: {os.getcwd()}")
     print(f"[INIT] Script location: {__file__}")
     print(f"[INIT] BASE_DIR: {BASE_DIR}")
@@ -569,4 +569,4 @@ if __name__ == '__main__':
         if hasattr(route, 'path') and hasattr(route, 'methods'):
             print(f"  {list(route.methods)} {route.path}")
     print("=" * 50)
-    uvicorn.run(app, host='127.0.0.1', port=8001, log_level='info')
+    uvicorn.run(app, host='127.0.0.1', port=8002, log_level='info')

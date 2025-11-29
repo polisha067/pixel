@@ -17,8 +17,8 @@ RUN mkdir -p /app/frontend
 # Копируем frontend файлы
 COPY frontend/ ./frontend/
 
-# Открываем порт 8001 для FastAPI
-EXPOSE 8001
+# Открываем порт 8002 для FastAPI
+EXPOSE 8002
 
 # Запускаем FastAPI сервер
 CMD ["python", "backend/main.py"]

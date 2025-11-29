@@ -69,7 +69,7 @@ async function generateResponse() {
         let errorMessage = 'Ошибка при генерации ответа. ';
         
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            errorMessage += 'Не удалось подключиться к серверу. Проверьте, что сервер запущен на http://localhost:8001';
+            errorMessage += 'Не удалось подключиться к серверу. Проверьте, что сервер запущен на http://localhost:8002';
         } else if (error.message.includes('HTTP error')) {
             errorMessage += `Ошибка сервера: ${error.message}`;
         } else {

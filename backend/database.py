@@ -121,20 +121,45 @@ def _add_missing_columns(table_name, columns):
         import traceback
         traceback.print_exc()
 
+def _truncate_password_to_72_bytes(password: str) -> str:
+    """
+    Обрезает пароль до 72 байт в UTF-8, чтобы соответствовать ограничению bcrypt.
+    Возвращает обрезанную строку.
+    """
+    if not isinstance(password, str):
+        password = str(password)
+    
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) <= 72:
+        return password
+    
+    # Обрезаем до 72 байт
+    truncated_bytes = password_bytes[:72]
+    # Декодируем обратно в строку, игнорируя возможные ошибки на границе
+    return truncated_bytes.decode('utf-8', errors='ignore')
+
 def verify_password(plain_password, hashed_password):
     """
     Проверяет соответствие пароля хешу.
+    При проверке пароль также обрезается до 72 байт для соответствия ограничению bcrypt.
     """
     try:
         if not plain_password or not hashed_password:
             return False
+        
+        # Обрезаем пароль до 72 байт, как при хешировании
+        if isinstance(plain_password, str):
+            plain_password = _truncate_password_to_72_bytes(plain_password)
         
         if HAS_PASSLIB:
             return pwd_context.verify(plain_password, hashed_password)
         elif HAS_BCRYPT:
             # Используем bcrypt напрямую
             if isinstance(plain_password, str):
-                plain_password = plain_password.encode('utf-8')
+                plain_password_bytes = plain_password.encode('utf-8')
+                if len(plain_password_bytes) > 72:
+                    plain_password_bytes = plain_password_bytes[:72]
+                plain_password = plain_password_bytes
             if isinstance(hashed_password, str):
                 hashed_password = hashed_password.encode('utf-8')
             return bcrypt.checkpw(plain_password, hashed_password)
@@ -159,34 +184,38 @@ def get_password_hash(password):
         if not isinstance(password, str):
             password = str(password)
         
-        # Кодируем в UTF-8 для подсчета байт
-        password_bytes = password.encode('utf-8')
-        
-        # Bcrypt ограничивает до 72 байт - обрезаем если нужно
-        if len(password_bytes) > 72:
-            password_bytes = password_bytes[:72]
+        # Обрезаем пароль до 72 байт перед хешированием
+        password = _truncate_password_to_72_bytes(password)
         
         # Хешируем пароль
         if HAS_PASSLIB:
-            # Passlib работает со строками, но мы передаем байты для безопасности
-            # Декодируем обратно в строку для passlib
-            password_str = password_bytes.decode('utf-8', errors='ignore')
-            hashed = pwd_context.hash(password_str)
+            # Passlib работает со строками
+            # Убеждаемся, что при кодировании длина не превысит 72 байта
+            password_bytes_check = password.encode('utf-8')
+            if len(password_bytes_check) > 72:
+                # Финальная проверка - если все еще больше, обрезаем еще раз
+                password = _truncate_password_to_72_bytes(password)
+            hashed = pwd_context.hash(password)
         elif HAS_BCRYPT:
             # Используем bcrypt напрямую (работает с байтами)
+            password_bytes = password.encode('utf-8')
+            if len(password_bytes) > 72:
+                password_bytes = password_bytes[:72]
             salt = bcrypt.gensalt()
             hashed_bytes = bcrypt.hashpw(password_bytes, salt)
             hashed = hashed_bytes.decode('utf-8')
         else:
             # Простая заглушка
-            password_str = password_bytes.decode('utf-8', errors='ignore')
-            hashed = pwd_context.hash(password_str)
+            hashed = pwd_context.hash(password)
         
         return hashed
         
     except Exception as e:
         print(f"[ERROR] Password hashing error: {str(e)}")
         print(f"[ERROR] Password type: {type(password)}, value: {repr(password)}")
+        if isinstance(password, str):
+            password_bytes = password.encode('utf-8')
+            print(f"[ERROR] Password length in bytes: {len(password_bytes)}")
         import traceback
         traceback.print_exc()
         raise ValueError(f"Error hashing password: {str(e)}")
