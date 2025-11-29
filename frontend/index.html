@@ -9,25 +9,27 @@
 <body>
     <div class="container">
         <header>
-            <h1>🏦 Банковская система</h1>
+            <h1>Банковская система</h1>
             <p>Выберите тип регистрации</p>
         </header>
 
         <main>
             <div class="registration-cards">
                 <div class="reg-card">
-                    <div class="reg-icon">👤</div>
+                    <div class="reg-icon"></div>
                     <h2>Клиент банка</h2>
                     <p>Регистрация для клиентов банка</p>
+                    <!-- Кнопка: Зарегистрироваться (клиент) - Экран: Главная страница (index.html) -->
                     <button class="btn btn-primary" onclick="window.location.href='/register-client.html'">
                         Зарегистрироваться
                     </button>
                 </div>
 
                 <div class="reg-card">
-                    <div class="reg-icon">👔</div>
+                    <div class="reg-icon"></div>
                     <h2>Сотрудник банка</h2>
                     <p>Регистрация для сотрудников банка</p>
+                    <!-- Кнопка: Зарегистрироваться (сотрудник) - Экран: Главная страница (index.html) -->
                     <button class="btn btn-primary" onclick="window.location.href='/register-employee.html'">
                         Зарегистрироваться
                     </button>
@@ -36,14 +38,15 @@
 
             <div class="login-section">
                 <h2>Уже зарегистрированы?</h2>
-                <button class="btn btn-success" onclick="window.location.href='/login.html'">
+                <!-- Кнопка: Войти - Экран: Главная страница (index.html) -->
+                <button class="btn btn-register btn-login-large" onclick="window.location.href='/login.html'">
                     Войти
                 </button>
             </div>
         </main>
 
         <footer>
-            <p>&copy; 2025 Банковская система</p>
+            <p>&copy; 2025 Банковская система для ПСБ банка от молодой команды pixel</p>
         </footer>
     </div>
 </body>

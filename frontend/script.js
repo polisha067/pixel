@@ -78,7 +78,7 @@ async function generateResponse() {
         
         showStatusMessage(errorMessage, 'error');
     } finally {
-        generateBtn.innerHTML = '🚀 Сгенерировать ответ';
+        generateBtn.innerHTML = 'Сгенерировать ответ';
         generateBtn.disabled = false;
     }
 }

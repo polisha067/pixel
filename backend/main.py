@@ -127,15 +127,32 @@ else:
 @app.post('/api/register')
 async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     try:
-        print(f"[REGISTER] Attempting to register user: {user_data.username}")
+        # Получаем имя и фамилию
+        first_name = user_data.first_name.strip() if hasattr(user_data, 'first_name') and user_data.first_name else None
+        last_name = user_data.last_name.strip() if hasattr(user_data, 'last_name') and user_data.last_name else None
         
-        # Проверка существующего пользователя
-        existing_user = db.query(User).filter(
-            (User.username == user_data.username) | (User.email == user_data.email)
-        ).first()
+        # Формируем username из имени и фамилии
+        if first_name and last_name:
+            base_username = f"{first_name} {last_name}"
+            username = base_username
+            # Проверяем, не существует ли уже пользователь с таким username
+            counter = 1
+            while db.query(User).filter(User.username == username).first():
+                username = f"{base_username} {counter}"
+                counter += 1
+        elif hasattr(user_data, 'username') and user_data.username:
+            # Для обратной совместимости
+            username = user_data.username
+        else:
+            raise HTTPException(status_code=400, detail="Имя и фамилия обязательны для заполнения")
+        
+        print(f"[REGISTER] Attempting to register user: {username} ({first_name} {last_name})")
+        
+        # Проверка существующего пользователя по email
+        existing_user = db.query(User).filter(User.email == user_data.email).first()
         if existing_user:
-            print(f"[REGISTER] User already exists: {user_data.username}")
-            raise HTTPException(status_code=400, detail="Username or email already exists")
+            print(f"[REGISTER] User with email already exists: {user_data.email}")
+            raise HTTPException(status_code=400, detail="Пользователь с таким email уже существует")
         
         # Проверка типа пользователя
         if user_data.user_type not in ["client", "employee"]:
@@ -156,7 +173,9 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
             specialization = user_data.specialization if hasattr(user_data, 'specialization') and user_data.specialization else user_data.classification
             
             new_user = User(
-                username=user_data.username,
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
                 email=user_data.email,
                 password_hash=password_hash,
                 user_type=UserType(user_data.user_type),
@@ -185,21 +204,27 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
 @app.post('/api/login')
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     try:
-        print(f"[LOGIN] Attempting login for: {credentials.username}")
-        user = db.query(User).filter(User.username == credentials.username).first()
+        login_input = credentials.username.strip()
+        print(f"[LOGIN] Attempting login for: {login_input}")
+        
+        # Пытаемся найти пользователя по username или email
+        user = db.query(User).filter(
+            (User.username == login_input) | (User.email == login_input)
+        ).first()
+        
         if not user:
-            print(f"[LOGIN] User not found: {credentials.username}")
+            print(f"[LOGIN] User not found: {login_input}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
         if not verify_password(credentials.password, user.password_hash):
-            print(f"[LOGIN] Invalid password for: {credentials.username}")
+            print(f"[LOGIN] Invalid password for: {login_input}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
         # Простая сессия (в продакшене использовать JWT)
         from models import get_msk_now
         session_id = f"{user.id}_{get_msk_now().timestamp()}"
         user_sessions[session_id] = user.id
-        print(f"[LOGIN] Login successful: {credentials.username}, session: {session_id}")
+        print(f"[LOGIN] Login successful: {login_input} (user: {user.username}), session: {session_id}")
         
         return {
             "message": "Login successful",

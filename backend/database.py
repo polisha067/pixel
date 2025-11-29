@@ -66,7 +66,9 @@ def init_db(reset_db=False):
         if 'users' in existing_tables_after:
             _add_missing_columns('users', [
                 ('classification', 'VARCHAR', 'NULL'),
-                ('specialization', 'VARCHAR', 'NULL')
+                ('specialization', 'VARCHAR', 'NULL'),
+                ('first_name', 'VARCHAR', 'NULL'),
+                ('last_name', 'VARCHAR', 'NULL')
             ])
         
         if 'letters' in existing_tables_after:

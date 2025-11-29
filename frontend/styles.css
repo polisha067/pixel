@@ -67,7 +67,7 @@ label {
     display: block;
     margin-bottom: 8px;
     font-weight: bold;
-    color: #2c3e50;
+    color: #0d3550;
 }
 
 textarea {
@@ -89,6 +89,7 @@ textarea:focus {
 }
 
 /* Buttons */
+/* Базовый класс для всех кнопок - используется на всех экранах */
 .btn {
     padding: 12px 24px;
     border: none;
@@ -101,6 +102,7 @@ textarea:focus {
     letter-spacing: 1px;
 }
 
+/* Кнопка: Основной стиль (синий) - используется для: "Взять в работу", "Сохранить", "Редактировать", "Отправить письмо" - Экран: Панель сотрудника, Панель клиента */
 .btn-primary {
     background: #3498db;
     color: white;
@@ -112,6 +114,7 @@ textarea:focus {
     box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
 }
 
+/* Кнопка: Успешное действие (зеленый) - используется для: "Сгенерировать ответ", "Одобрить" - Экран: Панель сотрудника */
 .btn-success {
     background: #27ae60;
     color: white;
@@ -123,6 +126,7 @@ textarea:focus {
     box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
 }
 
+/* Кнопка: Предупреждение (желтый/оранжевый) - используется для: "Выйти" (на панели клиента), "Перегенерировать" - Экран: Панель клиента, Панель сотрудника */
 .btn-warning {
     background: #f39c12;
     color: white;
@@ -132,6 +136,18 @@ textarea:focus {
     background: #e67e22;
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+}
+
+/* Кнопка: Регистрация/Вход (оранжевый) - используется для: "Войти", "Зарегистрироваться" (на формах регистрации), "Выйти" (на панели сотрудника) - Экран: Главная страница, Страница входа, Страницы регистрации, Панель сотрудника */
+.btn-register {
+    background: #e67e22;
+    color: white;
+}
+
+.btn-register:hover {
+    background: #d35400;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
 }
 
 /* Analysis cards */
@@ -360,6 +376,18 @@ footer {
     margin-bottom: 20px;
 }
 
+/* Кнопка: Зарегистрироваться (темно-синий) - используется для: "Зарегистрироваться" (клиент и сотрудник) - Экран: Главная страница (index.html) */
+.reg-card .btn-primary {
+    background: #0d3550;
+    color: white;
+}
+
+.reg-card .btn-primary:hover {
+    background: #0a2a40;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(13, 53, 80, 0.4);
+}
+
 /* Auth forms */
 .auth-form {
     max-width: 400px;
@@ -457,22 +485,30 @@ input[type="password"]:focus {
     margin-bottom: 30px;
 }
 
+/* Карточка статистики - Экран: Панель сотрудника (employee-dashboard.html) */
 .stats-card {
-    background: #e3f2fd;
-    border: 2px solid #2196f3;
+    background: #0d3550;
+    border: 2px solid #0a2a40;
     border-radius: 8px;
     padding: 20px;
     text-align: center;
     font-size: 1.2rem;
+    color: white;
 }
 
 .login-section {
     text-align: center;
-    margin-top: 40px;
-    color: white;
+    margin-top: 0px;
+    color: rgb(205, 169, 68);
 }
 
 .login-section h2 {
     color: white;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+}
+
+
+.btn-login-large {
+    padding: 16px 40px;
+    font-size: 18px;
 }

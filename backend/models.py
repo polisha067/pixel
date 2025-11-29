@@ -70,7 +70,9 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
+    username = Column(String, unique=True, index=True, nullable=False)  # Формируется автоматически из имени и фамилии
+    first_name = Column(String, nullable=True)  # Имя
+    last_name = Column(String, nullable=True)  # Фамилия
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     user_type = Column(SQLEnum(UserType), nullable=False)
@@ -122,12 +124,14 @@ class EmailResponse(BaseModel):
     content: str
 
 class UserRegister(BaseModel):
-    username: str
+    first_name: str  # Имя
+    last_name: str  # Фамилия
     email: str
     password: str
     user_type: str
     specialization: str | None = None  # Специализация для сотрудников (через запятую или null)
     classification: str | None = None  # Старое поле для обратной совместимости
+    username: str | None = None  # Для обратной совместимости, если не указан - формируется автоматически
 
 class UserLogin(BaseModel):
     username: str

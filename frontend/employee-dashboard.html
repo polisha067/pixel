@@ -71,21 +71,22 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>👔 Панель сотрудника банка</h1>
-            <button class="btn btn-warning" onclick="logout()" style="float: right; margin-top: -50px;">Выйти</button>
+        <header style="display: flex; justify-content: center; align-items: center; position: relative;">
+            <h1 style="margin: 0;">Панель сотрудника банка</h1>
+            <!-- Кнопка: Выйти (выход из системы) - Экран: Панель сотрудника (employee-dashboard.html) -->
+            <button class="btn btn-register btn-login-large" onclick="logout()" style="position: absolute; right: 0;">Выйти</button>
         </header>
 
         <main>
             <section class="stats-section">
-                <h2>📊 Статистика</h2>
+                <h2>Статистика</h2>
                 <div class="stats-card">
                     <p>Завершенных писем: <strong id="completed-count">0</strong></p>
                 </div>
             </section>
 
             <section class="letters-section">
-                <h2>📬 Все письма</h2>
+                <h2>Все письма</h2>
                 <div id="letters-list"></div>
             </section>
         </main>
@@ -166,10 +167,10 @@
 
                 listDiv.innerHTML = data.letters.map(letter => {
                     const statusText = {
-                        'pending': '⏳ Ожидает обработки',
-                        'in_work': '🔄 В работе',
-                        'response_ready': '✅ Ответ готов',
-                        'completed': '✔️ Завершено'
+                        'pending': 'Ожидает обработки',
+                        'in_work': 'В работе',
+                        'response_ready': 'Ответ готов',
+                        'completed': 'Завершено'
                     }[letter.status] || letter.status;
 
                     let actions = '';
@@ -185,7 +186,8 @@
                     }
 
                     if (letter.status === 'pending') {
-                        actions = `<button class="btn btn-primary" onclick="takeLetter(${letter.id})">Взять в работу</button>`;
+                        // Кнопка: Взять в работу (взять письмо в обработку) - Экран: Панель сотрудника (employee-dashboard.html)
+                        actions = `<button class="btn btn-primary" onclick="takeLetter(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Взять в работу</button>`;
                     } else if (letter.status === 'in_work') {
                         // Проверяем, что письмо взято текущим сотрудником
                         // Приводим оба значения к числам для надежного сравнения
@@ -198,10 +200,11 @@
                             // Всегда показываем кнопку генерации (или перегенерации, если ответ уже есть)
                             if (!letter.response) {
                                 // Если ответа еще нет, показываем кнопку генерации
+                                // Кнопка: Сгенерировать ответ (генерация ответа AI) - Экран: Панель сотрудника (employee-dashboard.html)
                                 actions = `
                                     <div class="response-actions">
-                                        <button class="btn btn-success" onclick="processLetter(${letter.id})" id="process-btn-${letter.id}">
-                                            🚀 Сгенерировать ответ
+                                        <button class="btn btn-success" onclick="processLetter(${letter.id})" id="process-btn-${letter.id}" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">
+                                            Сгенерировать ответ
                                         </button>
                                     </div>
                                 `;
@@ -214,19 +217,21 @@
                                             <div class="response-editor">
                                                 <textarea id="response-edit-${letter.id}">${currentResponse}</textarea>
                                                 <div class="response-actions">
-                                                    <button class="btn btn-primary" onclick="saveResponse(${letter.id})">Сохранить</button>
-                                                    <button class="btn btn-secondary" onclick="cancelEdit(${letter.id})">Отмена</button>
-                                                    <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})">🔄 Перегенерировать</button>
-                                                    <button class="btn btn-success" onclick="approveLetter(${letter.id})">✅ Одобрить</button>
+                                                    <!-- Кнопки в режиме редактирования ответа - Экран: Панель сотрудника (employee-dashboard.html) -->
+                                                    <button class="btn btn-primary" onclick="saveResponse(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Сохранить</button> <!-- Кнопка: Сохранить (сохранение отредактированного ответа) -->
+                                                    <button class="btn btn-secondary" onclick="cancelEdit(${letter.id})">Отмена</button> <!-- Кнопка: Отмена (отмена редактирования) -->
+                                                    <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Перегенерировать</button> <!-- Кнопка: Перегенерировать (перегенерация ответа AI) -->
+                                                    <button class="btn btn-success" onclick="approveLetter(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Одобрить</button> <!-- Кнопка: Одобрить (одобрение и завершение письма) -->
                                                 </div>
                                             </div>
                                         ` : `
                                             <div id="response-display-${letter.id}">
                                                 <p>${letter.response}</p>
                                                 <div class="response-actions">
-                                                    <button class="btn btn-primary" onclick="startEditFromButton(${letter.id})">✏️ Редактировать</button>
-                                                    <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})">🔄 Перегенерировать</button>
-                                                    <button class="btn btn-success" onclick="approveLetter(${letter.id})">✅ Одобрить</button>
+                                                    <!-- Кнопки при просмотре ответа - Экран: Панель сотрудника (employee-dashboard.html) -->
+                                                    <button class="btn btn-primary" onclick="startEditFromButton(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Редактировать</button> <!-- Кнопка: Редактировать (начало редактирования ответа) -->
+                                                    <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Перегенерировать</button> <!-- Кнопка: Перегенерировать (перегенерация ответа AI) -->
+                                                    <button class="btn btn-success" onclick="approveLetter(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Одобрить</button> <!-- Кнопка: Одобрить (одобрение и завершение письма) -->
                                                 </div>
                                             </div>
                                         `}
@@ -259,19 +264,21 @@
                                     <div class="response-editor">
                                         <textarea id="response-edit-${letter.id}">${currentResponse}</textarea>
                                         <div class="response-actions">
-                                            <button class="btn btn-primary" onclick="saveResponse(${letter.id})">Сохранить</button>
-                                            <button class="btn btn-secondary" onclick="cancelEdit(${letter.id})">Отмена</button>
-                                            <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})">🔄 Перегенерировать</button>
-                                            <button class="btn btn-success" onclick="approveLetter(${letter.id})">✅ Одобрить</button>
+                                            <!-- Кнопки в режиме редактирования ответа (статус response_ready) - Экран: Панель сотрудника (employee-dashboard.html) -->
+                                            <button class="btn btn-primary" onclick="saveResponse(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Сохранить</button> <!-- Кнопка: Сохранить (сохранение отредактированного ответа) -->
+                                            <button class="btn btn-secondary" onclick="cancelEdit(${letter.id})">Отмена</button> <!-- Кнопка: Отмена (отмена редактирования) -->
+                                            <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Перегенерировать</button> <!-- Кнопка: Перегенерировать (перегенерация ответа AI) -->
+                                            <button class="btn btn-success" onclick="approveLetter(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Одобрить</button> <!-- Кнопка: Одобрить (одобрение и завершение письма) -->
                                         </div>
                                     </div>
                                 ` : `
                                     <div id="response-display-${letter.id}">
                                         <p>${letter.response}</p>
                                         <div class="response-actions">
-                                            <button class="btn btn-primary" onclick="startEditFromButton(${letter.id})">✏️ Редактировать</button>
-                                            <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})">🔄 Перегенерировать</button>
-                                            <button class="btn btn-success" onclick="approveLetter(${letter.id})">✅ Одобрить</button>
+                                            <!-- Кнопки при просмотре ответа (статус response_ready) - Экран: Панель сотрудника (employee-dashboard.html) -->
+                                            <button class="btn btn-primary" onclick="startEditFromButton(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Редактировать</button> <!-- Кнопка: Редактировать (начало редактирования ответа) -->
+                                            <button class="btn btn-warning" onclick="regenerateResponse(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Перегенерировать</button> <!-- Кнопка: Перегенерировать (перегенерация ответа AI) -->
+                                            <button class="btn btn-success" onclick="approveLetter(${letter.id})" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Одобрить</button> <!-- Кнопка: Одобрить (одобрение и завершение письма) -->
                                         </div>
                                     </div>
                                 `}
@@ -298,21 +305,21 @@
                         const deadlineFormatted = formatMSKTime(letter.deadline);
                         
                         let deadlineClass = 'deadline-normal';
-                        let deadlineIcon = '📅';
+                        let deadlineIcon = '';
                         if (daysLeft < 0) {
                             deadlineClass = 'deadline-overdue';
-                            deadlineIcon = '⚠️';
+                            deadlineIcon = '';
                         } else if (daysLeft <= 1) {
                             deadlineClass = 'deadline-urgent';
-                            deadlineIcon = '🔥';
+                            deadlineIcon = '';
                         } else if (daysLeft <= 3) {
                             deadlineClass = 'deadline-warning';
-                            deadlineIcon = '⏰';
+                            deadlineIcon = '';
                         }
                         
                         deadlineDisplay = `
                             <div class="deadline-info ${deadlineClass}" style="margin: 10px 0; padding: 8px; border-radius: 4px; background: ${daysLeft < 0 ? '#fee' : daysLeft <= 1 ? '#fff3cd' : daysLeft <= 3 ? '#fff8dc' : '#e7f3ff'};">
-                                ${deadlineIcon} <strong>Дедлайн:</strong> ${deadlineFormatted} 
+                                <strong>Дедлайн:</strong> ${deadlineFormatted} 
                                 ${daysLeft < 0 ? `(просрочено на ${Math.abs(daysLeft)} дн.)` : daysLeft === 0 ? '(сегодня)' : `(осталось ${daysLeft} дн.)`}
                             </div>
                         `;
@@ -421,7 +428,7 @@
                 showGenerating(letterId, false);
                 if (btn) {
                     btn.disabled = false;
-                    btn.textContent = '🚀 Сгенерировать ответ';
+                    btn.textContent = 'Сгенерировать ответ';
                 }
             }
         }

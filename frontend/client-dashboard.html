@@ -9,22 +9,24 @@
 <body>
     <div class="container">
         <header>
-            <h1>👤 Панель клиента банка</h1>
+            <h1>Панель клиента банка</h1>
+            <!-- Кнопка: Выйти (выход из системы) - Экран: Панель клиента (client-dashboard.html) -->
             <button class="btn btn-warning" onclick="logout()" style="float: right; margin-top: -50px;">Выйти</button>
         </header>
 
         <main>
             <section class="input-section">
-                <h2>📝 Отправить письмо</h2>
+                <h2>Отправить письмо</h2>
                 <div class="form-group">
                     <label for="letter-text">Текст письма:</label>
                     <textarea id="letter-text" placeholder="Введите текст вашего письма..."></textarea>
                 </div>
-                <button id="send-btn" class="btn btn-primary">Отправить письмо</button>
+                <!-- Кнопка: Отправить письмо (отправка письма клиентом) - Экран: Панель клиента (client-dashboard.html) -->
+                <button id="send-btn" class="btn btn-primary" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">Отправить письмо</button>
             </section>
 
             <section class="letters-section">
-                <h2>📬 Мои письма</h2>
+                <h2>Мои письма</h2>
                 <div id="letters-list"></div>
             </section>
         </main>
@@ -53,10 +55,10 @@
 
                 listDiv.innerHTML = data.letters.map(letter => {
                     const statusText = {
-                        'pending': '⏳ Ожидает обработки',
-                        'in_work': '🔄 В работе',
-                        'response_ready': '✅ Ответ готов (ожидает одобрения сотрудником)',
-                        'completed': '✔️ Завершено'
+                        'pending': 'Ожидает обработки',
+                        'in_work': 'В работе',
+                        'response_ready': 'Ответ готов (ожидает одобрения сотрудником)',
+                        'completed': 'Завершено'
                     }[letter.status] || letter.status;
 
                     let actions = '';
