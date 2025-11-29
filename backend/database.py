@@ -78,6 +78,11 @@ def init_db(reset_db=False):
                 ('specialization', 'VARCHAR', 'NULL')
             ])
         
+        # Проверяем и добавляем таблицу user_business_info
+        if 'user_business_info' not in existing_tables_after:
+            print("[DB] Creating user_business_info table")
+            Base.metadata.create_all(bind=engine)
+        
         if existing_tables:
             print(f"[DB] Database tables already exist: {existing_tables}")
             print("[DB] Existing data will be preserved")

@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session
 from models import (
     MailRequest, EmailResponse, UserRegister, UserLogin, 
     LetterCreate, LetterResponse, LetterListResponse, StatsResponse,
-    LetterUpdateResponse, User, Letter, UserType, LetterStatus, EmailType, Specialization, get_msk_now, MSK_TZ
+    LetterUpdateResponse, User, Letter, UserType, LetterStatus, EmailType, Specialization, get_msk_now, MSK_TZ,
+    UserBusinessInfo
 )
-from ai_funcs import generate_answer, analyze_mail
+from ai_funcs import generate_answer, analyze_mail, extract_business_info
 from database import get_db, init_db, verify_password, get_password_hash
 import uvicorn
 import os
@@ -386,6 +387,18 @@ async def create_letter(
     db.commit()
     db.refresh(new_letter)
     
+    # Извлекаем и сохраняем важную бизнес-информацию из письма
+    try:
+        business_info = await extract_business_info(letter_data.content)
+        if business_info:
+            save_business_info(user.id, business_info, new_letter.id, db)
+            print(f"[LETTER] Сохранена бизнес-информация для пользователя {user.id}")
+    except Exception as e:
+        print(f"[LETTER] Ошибка при извлечении бизнес-информации: {e}")
+        import traceback
+        traceback.print_exc()
+        # Продолжаем работу даже если извлечение информации не удалось
+    
     return {
         "message": "Letter created successfully",
         "letter_id": new_letter.id,
@@ -540,6 +553,75 @@ async def take_letter(
     
     return {"message": "Letter taken in work"}
 
+def save_business_info(user_id: int, business_info: dict, letter_id: int, db: Session):
+    """
+    Сохраняет или обновляет бизнес-информацию о пользователе.
+    
+    Args:
+        user_id: ID пользователя
+        business_info: Словарь с информацией (например, {"has_credit_card": true})
+        letter_id: ID письма, из которого извлечена информация
+        db: Сессия базы данных
+    """
+    if not business_info:
+        return
+    
+    for info_key, info_value in business_info.items():
+        # Проверяем, существует ли уже запись
+        existing_info = db.query(UserBusinessInfo).filter(
+            UserBusinessInfo.user_id == user_id,
+            UserBusinessInfo.info_key == info_key
+        ).first()
+        
+        if existing_info:
+            # Обновляем существующую запись
+            existing_info.info_value = str(info_value).lower() if isinstance(info_value, bool) else str(info_value)
+            existing_info.source_letter_id = letter_id
+            existing_info.updated_at = get_msk_now()
+            print(f"[BIZ_INFO] Обновлена информация: {info_key} = {info_value} для пользователя {user_id}")
+        else:
+            # Создаем новую запись
+            new_info = UserBusinessInfo(
+                user_id=user_id,
+                info_key=info_key,
+                info_value=str(info_value).lower() if isinstance(info_value, bool) else str(info_value),
+                source_letter_id=letter_id
+            )
+            db.add(new_info)
+            print(f"[BIZ_INFO] Сохранена новая информация: {info_key} = {info_value} для пользователя {user_id}")
+    
+    db.commit()
+
+
+def get_user_business_info(user_id: int, db: Session) -> dict:
+    """
+    Получает сохраненную бизнес-информацию о пользователе.
+    
+    Args:
+        user_id: ID пользователя
+        db: Сессия базы данных
+    
+    Returns:
+        Словарь с бизнес-информацией
+    """
+    info_records = db.query(UserBusinessInfo).filter(
+        UserBusinessInfo.user_id == user_id
+    ).all()
+    
+    business_info = {}
+    for record in info_records:
+        # Преобразуем строковые значения обратно в boolean, если нужно
+        value = record.info_value
+        if value.lower() == "true":
+            business_info[record.info_key] = True
+        elif value.lower() == "false":
+            business_info[record.info_key] = False
+        else:
+            business_info[record.info_key] = value
+    
+    return business_info
+
+
 def get_client_letter_history(author_id: int, exclude_letter_id: int, db: Session, limit: int = 10):
     """
     Получает историю предыдущих писем клиента для использования в контексте генерации ответа.
@@ -595,8 +677,15 @@ async def process_letter(
         # Получаем историю предыдущих писем клиента
         letters_history = get_client_letter_history(letter.author_id, letter.id, db)
         
-        # Генерация ответа через нейронку с учетом истории переписки
-        generated_response = await generate_answer(letter.content, letters_history=letters_history)
+        # Получаем сохраненную бизнес-информацию о клиенте
+        business_info = get_user_business_info(letter.author_id, db)
+        
+        # Генерация ответа через нейронку с учетом истории переписки и бизнес-информации
+        generated_response = await generate_answer(
+            letter.content, 
+            letters_history=letters_history,
+            business_info=business_info if business_info else None
+        )
         letter.response = generated_response
         letter.status = LetterStatus.RESPONSE_READY
         letter.updated_at = get_msk_now()
@@ -663,8 +752,15 @@ async def regenerate_letter_response(
         # Получаем историю предыдущих писем клиента
         letters_history = get_client_letter_history(letter.author_id, letter.id, db)
         
-        # Генерация нового ответа через нейронку с учетом истории переписки
-        generated_response = await generate_answer(letter.content, letters_history=letters_history)
+        # Получаем сохраненную бизнес-информацию о клиенте
+        business_info = get_user_business_info(letter.author_id, db)
+        
+        # Генерация нового ответа через нейронку с учетом истории переписки и бизнес-информации
+        generated_response = await generate_answer(
+            letter.content, 
+            letters_history=letters_history,
+            business_info=business_info if business_info else None
+        )
         letter.response = generated_response
         letter.status = LetterStatus.RESPONSE_READY
         letter.updated_at = get_msk_now()

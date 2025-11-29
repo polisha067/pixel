@@ -1,7 +1,7 @@
 from openai import OpenAI
 from dotenv import load_dotenv
 import os, json
-from ai_promts import ANALISYS_PROMT, get_generation_promt
+from ai_promts import ANALISYS_PROMT, get_generation_promt, BUSINESS_INFO_EXTRACTION_PROMPT
 from rag_system import get_rag_context
 
 load_dotenv()
@@ -61,6 +61,99 @@ async def generate_mail(email, instructions):
         raise Exception(f"Yandex API error: {str(e)}")
 
 
+async def extract_business_info(email_content):
+    """
+    Извлекает важную бизнес-информацию о клиенте из письма.
+    
+    Args:
+        email_content: Текст письма от клиента
+    
+    Returns:
+        Словарь с извлеченной информацией (например, {"has_credit_card": true})
+    """
+    try:
+        response = client.responses.create(
+            model=model,
+            instructions=BUSINESS_INFO_EXTRACTION_PROMPT,
+            input=email_content,
+            temperature=0.1
+        )
+
+        result_text = response.output_text.strip()
+        
+        # Убираем markdown код блоки, если есть
+        if result_text.startswith("```"):
+            # Удаляем ```json и ``` в начале и конце
+            result_text = result_text.replace("```json", "").replace("```", "").strip()
+
+        result = json.loads(result_text)
+        
+        # Фильтруем только важные поля
+        important_keys = [
+            "has_credit_card", "has_debit_card", "has_mortgage", 
+            "has_car_loan", "has_consumer_loan", "has_account", "has_insurance"
+        ]
+        
+        filtered_result = {k: v for k, v in result.items() if k in important_keys}
+        
+        if filtered_result:
+            print(f"[BIZ_INFO] Извлечена бизнес-информация: {filtered_result}")
+        else:
+            print("[BIZ_INFO] Важная бизнес-информация не найдена в письме")
+        
+        return filtered_result
+
+    except json.JSONDecodeError as e:
+        print(f"[BIZ_INFO] Ошибка парсинга JSON: {str(e)}")
+        print(f"[BIZ_INFO] Ответ API: {result_text[:200]}")
+        return {}
+    except Exception as e:
+        print(f"[BIZ_INFO] Ошибка извлечения информации: {str(e)}")
+        return {}
+
+
+def format_business_info_context(business_info: dict) -> str:
+    """
+    Форматирует бизнес-информацию для включения в контекст генерации ответа.
+    
+    Args:
+        business_info: Словарь с бизнес-информацией
+    
+    Returns:
+        Отформатированная строка с информацией
+    """
+    if not business_info:
+        return ""
+    
+    formatted = []
+    formatted.append("═══════════════════════════════════════════════════════════════")
+    formatted.append("ВАЖНАЯ БИЗНЕС-ИНФОРМАЦИЯ О КЛИЕНТЕ")
+    formatted.append("═══════════════════════════════════════════════════════════════")
+    formatted.append("")
+    
+    info_labels = {
+        "has_credit_card": "Наличие кредитной карты",
+        "has_debit_card": "Наличие дебетовой карты",
+        "has_mortgage": "Наличие ипотеки",
+        "has_car_loan": "Наличие автокредита",
+        "has_consumer_loan": "Наличие потребительского кредита",
+        "has_account": "Наличие счета в банке",
+        "has_insurance": "Наличие страховки"
+    }
+    
+    for key, value in business_info.items():
+        label = info_labels.get(key, key)
+        status = "Да" if value else "Нет"
+        formatted.append(f"- {label}: {status}")
+    
+    formatted.append("")
+    formatted.append("ВАЖНО: Используй эту информацию при генерации ответа. Если клиент является держателем карты или имеет кредит - учитывай это в ответе.")
+    formatted.append("═══════════════════════════════════════════════════════════════")
+    formatted.append("")
+    
+    return "\n".join(formatted)
+
+
 def format_letter_history(letters_history):
     """
     Форматирует историю писем для включения в контекст генерации.
@@ -104,9 +197,9 @@ def format_letter_history(letters_history):
     return "\n".join(formatted_history)
 
 
-async def generate_answer(incoming_letter, letters_history=None):
+async def generate_answer(incoming_letter, letters_history=None, business_info=None):
     """
-    Генерирует ответ на входящее письмо с учетом истории переписки.
+    Генерирует ответ на входящее письмо с учетом истории переписки и бизнес-информации о клиенте.
     
     Args:
         incoming_letter: Текст текущего письма от клиента
@@ -114,6 +207,8 @@ async def generate_answer(incoming_letter, letters_history=None):
                         Каждый элемент должен быть словарем с ключами:
                         'content' (текст письма), 'response' (ответ банка, если есть),
                         'created_at' (дата создания)
+        business_info: Словарь с бизнес-информацией о клиенте (опционально).
+                      Например, {"has_credit_card": True, "has_mortgage": False}
     
     Returns:
         Сгенерированный ответ
@@ -133,6 +228,14 @@ async def generate_answer(incoming_letter, letters_history=None):
         if history_context:
             print(f"[HISTORY] История сформирована ({len(history_context)} символов)")
     
+    # Форматируем бизнес-информацию, если она есть
+    business_info_context = ""
+    if business_info:
+        business_info_context = format_business_info_context(business_info)
+        if business_info_context:
+            print(f"[BIZ_INFO] Используется бизнес-информация о клиенте")
+            print(f"[BIZ_INFO] Информация: {business_info}")
+    
     # Логируем для отладки
     if rag_context:
         print(f"[RAG] Извлечен контекст ({len(rag_context)} символов):")
@@ -140,6 +243,11 @@ async def generate_answer(incoming_letter, letters_history=None):
     else:
         print("[RAG] ВНИМАНИЕ: Контекст из базы знаний не извлечен!")
     
-    instruction = get_generation_promt(email_type, rag_context, specialization, history_context)
+    # Объединяем контексты
+    full_context = history_context
+    if business_info_context:
+        full_context = (full_context + "\n" + business_info_context) if full_context else business_info_context
+    
+    instruction = get_generation_promt(email_type, rag_context, specialization, full_context)
     r = await generate_mail(incoming_letter, instructions=instruction)
     return r

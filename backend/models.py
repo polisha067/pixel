@@ -116,6 +116,22 @@ class Letter(Base):
     author = relationship("User", foreign_keys=[author_id], back_populates="letters")
     employee = relationship("User", foreign_keys=[employee_id], back_populates="assigned_letters")
 
+class UserBusinessInfo(Base):
+    """Модель для хранения важной бизнес-информации о клиентах"""
+    __tablename__ = "user_business_info"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    info_key = Column(String, nullable=False, index=True)  # Ключ информации (например, "has_credit_card")
+    info_value = Column(String, nullable=True)  # Значение (например, "true", "false", или конкретное значение)
+    source_letter_id = Column(Integer, ForeignKey("letters.id"), nullable=True)  # ID письма, из которого извлечена информация
+    created_at = Column(DateTime, default=lambda: get_msk_now())
+    updated_at = Column(DateTime, default=lambda: get_msk_now(), onupdate=lambda: get_msk_now())
+    
+    # Связи
+    user = relationship("User", foreign_keys=[user_id])
+    source_letter = relationship("Letter", foreign_keys=[source_letter_id])
+
 # Pydantic модели для API
 class MailRequest(BaseModel):
     email: str
