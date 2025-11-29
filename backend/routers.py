@@ -16,19 +16,14 @@ from datetime import datetime, timedelta
 from sqlalchemy import or_
 import os
 
-# Создаем роутеры
 router = APIRouter()
 
-# Получаем путь к frontend
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
 
-# ==================== HTML СТРАНИЦЫ ====================
-
 @router.get('/')
 async def root():
-    """Главная страница"""
     index_path = os.path.join(FRONTEND_DIR, 'index.html')
     if os.path.exists(index_path):
         return FileResponse(index_path, media_type='text/html')
@@ -37,7 +32,6 @@ async def root():
 
 @router.get('/register-client.html')
 async def register_client():
-    """Страница регистрации клиента"""
     path = os.path.join(FRONTEND_DIR, 'register-client.html')
     print(f"[DEBUG] register-client.html requested")
     print(f"[DEBUG] Looking for register-client.html at: {path}")
@@ -51,7 +45,6 @@ async def register_client():
 
 @router.get('/register-employee.html')
 async def register_employee():
-    """Страница регистрации сотрудника"""
     path = os.path.join(FRONTEND_DIR, 'register-employee.html')
     if os.path.exists(path):
         return FileResponse(path, media_type='text/html')
@@ -60,7 +53,6 @@ async def register_employee():
 
 @router.get('/login.html')
 async def login_page():
-    """Страница входа"""
     path = os.path.join(FRONTEND_DIR, 'login.html')
     if os.path.exists(path):
         return FileResponse(path, media_type='text/html')
@@ -69,7 +61,6 @@ async def login_page():
 
 @router.get('/client-dashboard.html')
 async def client_dashboard():
-    """Дашборд клиента"""
     path = os.path.join(FRONTEND_DIR, 'client-dashboard.html')
     if os.path.exists(path):
         return FileResponse(path, media_type='text/html')
@@ -78,58 +69,44 @@ async def client_dashboard():
 
 @router.get('/employee-dashboard.html')
 async def employee_dashboard():
-    """Дашборд сотрудника"""
     path = os.path.join(FRONTEND_DIR, 'employee-dashboard.html')
     if os.path.exists(path):
         return FileResponse(path, media_type='text/html')
     raise HTTPException(status_code=404, detail="Page not found")
 
 
-# ==================== API РОУТЕРЫ ====================
-
 @router.get('/api/health')
 async def health_check():
-    """Health check endpoint для Docker"""
     return {"status": "ok", "message": "Server is running"}
 
 
 @router.post('/api/register')
 async def register(user_data: UserRegister, db: Session = Depends(get_db)):
-    """Регистрация нового пользователя"""
     try:
-        # Получаем имя и фамилию
         first_name = user_data.first_name.strip() if hasattr(user_data, 'first_name') and user_data.first_name else None
         last_name = user_data.last_name.strip() if hasattr(user_data, 'last_name') and user_data.last_name else None
-        
-        # Формируем username из имени и фамилии
         if first_name and last_name:
             base_username = f"{first_name} {last_name}"
             username = base_username
-            # Проверяем, не существует ли уже пользователь с таким username
             counter = 1
             while db.query(User).filter(User.username == username).first():
                 username = f"{base_username} {counter}"
                 counter += 1
         elif hasattr(user_data, 'username') and user_data.username:
-            # Для обратной совместимости
             username = user_data.username
         else:
             raise HTTPException(status_code=400, detail="Имя и фамилия обязательны для заполнения")
         
         print(f"[REGISTER] Attempting to register user: {username} ({first_name} {last_name})")
         
-        # Проверка существующего пользователя по email
         existing_user = db.query(User).filter(User.email == user_data.email).first()
         if existing_user:
             print(f"[REGISTER] User with email already exists: {user_data.email}")
             raise HTTPException(status_code=400, detail="Пользователь с таким email уже существует")
         
-        # Проверка типа пользователя
         if user_data.user_type not in ["client", "employee"]:
             print(f"[REGISTER] Invalid user type: {user_data.user_type}")
             raise HTTPException(status_code=400, detail="Invalid user type")
-        
-        # Хеширование пароля
         try:
             from database import get_password_hash
             password_hash = get_password_hash(user_data.password)
@@ -138,9 +115,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
             print(f"[REGISTER] Error hashing password: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error processing password: {str(e)}")
         
-        # Создание пользователя
         try:
-            # Используем specialization, если указано, иначе classification (для обратной совместимости)
             specialization = user_data.specialization if hasattr(user_data, 'specialization') and user_data.specialization else user_data.classification
             
             new_user = User(
@@ -151,7 +126,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
                 password_hash=password_hash,
                 user_type=UserType(user_data.user_type),
                 specialization=specialization if user_data.user_type == "employee" else None,
-                classification=user_data.classification if user_data.user_type == "employee" else None  # Для обратной совместимости
+                classification=user_data.classification if user_data.user_type == "employee" else None
             )
             db.add(new_user)
             db.commit()
@@ -174,12 +149,10 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
 
 @router.post('/api/login')
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
-    """Авторизация пользователя"""
     try:
         login_input = credentials.username.strip()
         print(f"[LOGIN] Attempting login for: {login_input}")
         
-        # Пытаемся найти пользователя по username или email
         user = db.query(User).filter(
             (User.username == login_input) | (User.email == login_input)
         ).first()
@@ -193,7 +166,6 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
             print(f"[LOGIN] Invalid password for: {login_input}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
-        # Простая сессия (в продакшене использовать JWT)
         session_id = f"{user.id}_{get_msk_now().timestamp()}"
         user_sessions[session_id] = user.id
         print(f"[LOGIN] Login successful: {login_input} (user: {user.username}), session: {session_id}")
@@ -219,15 +191,12 @@ async def create_letter(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Клиент: отправить письмо"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.CLIENT:
         raise HTTPException(status_code=403, detail="Only clients can create letters")
     
-    # Получаем текущую дату создания письма
     created_at = get_msk_now()
     
-    # Анализируем письмо для определения классификации, специализации и дедлайна
     email_type = None
     specialization = None
     deadline = None
@@ -248,15 +217,11 @@ async def create_letter(
         if specialization_str:
             specialization = specialization_str
         
-        # Если дедлайн указан в письме, используем его
         if deadline_str:
             try:
-                # Парсим дату в формате ГГГГ-ММ-ДД
                 deadline = datetime.strptime(deadline_str, "%Y-%m-%d")
-                # Устанавливаем время на конец дня в MSK
                 deadline = deadline.replace(hour=23, minute=59, second=59)
                 if MSK_TZ:
-                    # Для pytz используем localize, для zoneinfo просто replace
                     if hasattr(MSK_TZ, 'localize'):
                         deadline = MSK_TZ.localize(deadline)
                     else:
@@ -265,16 +230,12 @@ async def create_letter(
                 print(f"[LETTER] Error parsing deadline: {e}")
                 deadline = None
         
-        # Если дедлайн не указан в письме или не удалось распарсить, устанавливаем 10 дней от даты создания
         if deadline is None:
             deadline = created_at + timedelta(days=10)
-            # Устанавливаем время на конец дня
             deadline = deadline.replace(hour=23, minute=59, second=59)
             print(f"[LETTER] Deadline not specified, setting to 10 days from creation: {deadline}")
         
-        # Автоматически назначаем письмо соответствующему специалисту
         if specialization:
-            # Ищем сотрудника с соответствующей специализацией
             employees = db.query(User).filter(
                 User.user_type == UserType.EMPLOYEE,
                 User.specialization.isnot(None)
@@ -282,14 +243,12 @@ async def create_letter(
             
             for employee in employees:
                 if employee.specialization:
-                    # Специализация может быть через запятую (несколько)
                     specializations = [s.strip() for s in employee.specialization.split(',')]
                     if specialization in specializations:
                         assigned_employee_id = employee.id
                         print(f"[LETTER] Auto-assigned to employee {employee.id} with specialization {specialization}")
                         break
             
-            # Если не нашли по specialization, пробуем по старому полю classification
             if not assigned_employee_id:
                 employees = db.query(User).filter(
                     User.user_type == UserType.EMPLOYEE,
@@ -308,19 +267,15 @@ async def create_letter(
         print(f"[LETTER] Error analyzing letter: {e}")
         import traceback
         traceback.print_exc()
-        # Продолжаем создание письма даже если анализ не удался
         email_type = EmailType.OTHER
         specialization = "Прочее"
-        # Устанавливаем дедлайн 10 дней от даты создания
         deadline = created_at + timedelta(days=10)
         deadline = deadline.replace(hour=23, minute=59, second=59)
         print(f"[LETTER] Analysis failed, setting default deadline: {deadline}")
     
-    # Если специализация не определена, устанавливаем "Прочее"
     if not specialization:
         specialization = "Прочее"
     
-    # Если письмо назначено сотруднику, сразу ставим статус IN_WORK
     status = LetterStatus.IN_WORK if assigned_employee_id else LetterStatus.PENDING
     
     new_letter = Letter(
@@ -331,13 +286,12 @@ async def create_letter(
         specialization=specialization,
         employee_id=assigned_employee_id,
         deadline=deadline,
-        created_at=created_at  # Явно устанавливаем дату создания
+        created_at=created_at
     )
     db.add(new_letter)
     db.commit()
     db.refresh(new_letter)
     
-    # Извлекаем и сохраняем важную бизнес-информацию из письма
     try:
         business_info = await extract_business_info(letter_data.content)
         if business_info:
@@ -347,7 +301,6 @@ async def create_letter(
         print(f"[LETTER] Ошибка при извлечении бизнес-информации: {e}")
         import traceback
         traceback.print_exc()
-        # Продолжаем работу даже если извлечение информации не удалось
     
     return {
         "message": "Letter created successfully",
@@ -364,7 +317,6 @@ async def get_my_letters(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Клиент: получить свои письма"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.CLIENT:
         raise HTTPException(status_code=403, detail="Only clients can view their letters")
@@ -376,7 +328,6 @@ async def get_my_letters(
             id=letter.id,
             content=letter.content,
             status=letter.status.value,
-            # Показываем ответ клиенту ТОЛЬКО если письмо одобрено (статус completed)
             response=letter.response if letter.status == LetterStatus.COMPLETED else None,
             employee_id=letter.employee_id,
             email_type=letter.email_type.value if letter.email_type else None,
@@ -396,41 +347,32 @@ async def get_all_letters(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Сотрудник: получить все письма"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can view all letters")
     
-    # Фильтруем письма по специализации сотрудника
     query = db.query(Letter)
     
-    # Если у сотрудника указана специализация, фильтруем по ней
     if user.specialization:
-        # Специализация может быть через запятую (несколько)
         specializations = [s.strip() for s in user.specialization.split(',')]
-        # Фильтруем письма, которые соответствуют специализации сотрудника
         conditions = []
         for spec in specializations:
             conditions.append(Letter.specialization == spec)
         
         if conditions:
             query = query.filter(or_(*conditions))
-    # Если специализация не указана, проверяем старое поле classification
     elif user.classification:
-        # Классификация может быть через запятую (несколько типов)
         classifications = [c.strip() for c in user.classification.split(',')]
-        # Фильтруем письма, которые соответствуют классификации сотрудника или не имеют классификации
         conditions = []
         for cls in classifications:
             try:
                 email_type_enum = EmailType(cls)
                 conditions.append(Letter.email_type == email_type_enum)
             except ValueError:
-                pass  # Пропускаем неверные значения
+                pass
         
         if conditions:
             query = query.filter(or_(*conditions, Letter.email_type.is_(None)))
-    # Если ни специализация, ни классификация не указаны, сотрудник видит все письма
     
     letters = query.order_by(Letter.created_at.desc()).all()
     
@@ -459,7 +401,6 @@ async def take_letter(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Сотрудник: взять письмо в работу"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can take letters")
@@ -484,7 +425,6 @@ async def process_letter(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Сотрудник: обработать письмо (генерировать ответ)"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can process letters")
@@ -497,13 +437,8 @@ async def process_letter(
         raise HTTPException(status_code=400, detail="Letter is not in your work")
     
     try:
-        # Получаем историю предыдущих писем клиента
         letters_history = get_client_letter_history(letter.author_id, letter.id, db)
-        
-        # Получаем сохраненную бизнес-информацию о клиенте
         business_info = get_user_business_info(letter.author_id, db)
-        
-        # Генерация ответа через нейронку с учетом истории переписки и бизнес-информации
         generated_response = await generate_answer(
             letter.content, 
             letters_history=letters_history,
@@ -529,7 +464,6 @@ async def update_letter_response(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Сотрудник: обновить ответ (редактировать)"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can update responses")
@@ -558,7 +492,6 @@ async def regenerate_letter_response(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Сотрудник: перегенерировать ответ"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can regenerate responses")
@@ -574,13 +507,8 @@ async def regenerate_letter_response(
         raise HTTPException(status_code=400, detail="Letter is not in regeneratable state")
     
     try:
-        # Получаем историю предыдущих писем клиента
         letters_history = get_client_letter_history(letter.author_id, letter.id, db)
-        
-        # Получаем сохраненную бизнес-информацию о клиенте
         business_info = get_user_business_info(letter.author_id, db)
-        
-        # Генерация нового ответа через нейронку с учетом истории переписки и бизнес-информации
         generated_response = await generate_answer(
             letter.content, 
             letters_history=letters_history,
@@ -605,7 +533,6 @@ async def approve_letter(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Сотрудник: одобрить ответ"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can approve letters")
@@ -632,7 +559,6 @@ async def get_stats(
     session_id: str = Header(..., alias="X-Session-ID"),
     db: Session = Depends(get_db)
 ):
-    """Статистика завершенных писем"""
     user = get_current_user(session_id, db)
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can view stats")
@@ -644,7 +570,6 @@ async def get_stats(
 
 @router.post('/mail_generator', response_model=EmailResponse)
 async def mail_generator(request: MailRequest):
-    """Генерация письма (legacy endpoint)"""
     try:
         generated_letter = await generate_answer(request.email)
         return EmailResponse(content=generated_letter)
