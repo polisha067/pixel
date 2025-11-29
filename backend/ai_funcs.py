@@ -2,6 +2,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os, json
 from ai_promts import ANALISYS_PROMT, get_generation_promt
+from rag_system import get_rag_context
 
 load_dotenv()
 
@@ -35,6 +36,10 @@ async def analyze_mail(email):
 
         if "email_type" not in result or "deadline" not in result:
             raise ValueError("Invalid response structure from API")
+        
+        # Если specialization не указана, устанавливаем "Прочее"
+        if "specialization" not in result:
+            result["specialization"] = "Прочее"
 
         return result
 
@@ -57,7 +62,19 @@ async def generate_mail(email, instructions):
 
 async def generate_answer(incoming_letter):
     email_analisys = await analyze_mail(incoming_letter)
-    email_type = email_analisys["email_type"]
-    instruction = get_generation_promt(email_type)
+    email_type = email_analisys.get("email_type", "OTHER")
+    specialization = email_analisys.get("specialization", None)
+    
+    # Получаем релевантный контекст из базы знаний ПСБ
+    rag_context = await get_rag_context(incoming_letter)
+    
+    # Логируем для отладки
+    if rag_context:
+        print(f"[RAG] Извлечен контекст ({len(rag_context)} символов):")
+        print(f"[RAG] Первые 200 символов: {rag_context[:200]}...")
+    else:
+        print("[RAG] ВНИМАНИЕ: Контекст из базы знаний не извлечен!")
+    
+    instruction = get_generation_promt(email_type, rag_context, specialization)
     r = await generate_mail(incoming_letter, instructions=instruction)
     return r

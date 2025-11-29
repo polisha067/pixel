@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from models import (
     MailRequest, EmailResponse, UserRegister, UserLogin, 
     LetterCreate, LetterResponse, LetterListResponse, StatsResponse,
-    LetterUpdateResponse, User, Letter, UserType, LetterStatus, EmailType, get_msk_now, MSK_TZ
+    LetterUpdateResponse, User, Letter, UserType, LetterStatus, EmailType, Specialization, get_msk_now, MSK_TZ
 )
 from ai_funcs import generate_answer, analyze_mail
 from database import get_db, init_db, verify_password, get_password_hash
@@ -152,12 +152,16 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         
         # Создание пользователя
         try:
+            # Используем specialization, если указано, иначе classification (для обратной совместимости)
+            specialization = user_data.specialization if hasattr(user_data, 'specialization') and user_data.specialization else user_data.classification
+            
             new_user = User(
                 username=user_data.username,
                 email=user_data.email,
                 password_hash=password_hash,
                 user_type=UserType(user_data.user_type),
-                classification=user_data.classification if user_data.user_type == "employee" else None
+                specialization=specialization if user_data.user_type == "employee" else None,
+                classification=user_data.classification if user_data.user_type == "employee" else None  # Для обратной совместимости
             )
             db.add(new_user)
             db.commit()
@@ -235,12 +239,16 @@ async def create_letter(
     # Получаем текущую дату создания письма
     created_at = get_msk_now()
     
-    # Анализируем письмо для определения классификации и дедлайна
+    # Анализируем письмо для определения классификации, специализации и дедлайна
     email_type = None
+    specialization = None
     deadline = None
+    assigned_employee_id = None
+    
     try:
         analysis = await analyze_mail(letter_data.content)
         email_type_str = analysis.get("email_type")
+        specialization_str = analysis.get("specialization")
         deadline_str = analysis.get("deadline")
         
         if email_type_str:
@@ -248,6 +256,9 @@ async def create_letter(
                 email_type = EmailType(email_type_str)
             except ValueError:
                 email_type = EmailType.OTHER
+        
+        if specialization_str:
+            specialization = specialization_str
         
         # Если дедлайн указан в письме, используем его
         if deadline_str:
@@ -273,24 +284,66 @@ async def create_letter(
             # Устанавливаем время на конец дня
             deadline = deadline.replace(hour=23, minute=59, second=59)
             print(f"[LETTER] Deadline not specified, setting to 10 days from creation: {deadline}")
+        
+        # Автоматически назначаем письмо соответствующему специалисту
+        if specialization:
+            # Ищем сотрудника с соответствующей специализацией
+            employees = db.query(User).filter(
+                User.user_type == UserType.EMPLOYEE,
+                User.specialization.isnot(None)
+            ).all()
+            
+            for employee in employees:
+                if employee.specialization:
+                    # Специализация может быть через запятую (несколько)
+                    specializations = [s.strip() for s in employee.specialization.split(',')]
+                    if specialization in specializations:
+                        assigned_employee_id = employee.id
+                        print(f"[LETTER] Auto-assigned to employee {employee.id} with specialization {specialization}")
+                        break
+            
+            # Если не нашли по specialization, пробуем по старому полю classification
+            if not assigned_employee_id:
+                employees = db.query(User).filter(
+                    User.user_type == UserType.EMPLOYEE,
+                    User.classification.isnot(None)
+                ).all()
+                
+                for employee in employees:
+                    if employee.classification:
+                        classifications = [c.strip() for c in employee.classification.split(',')]
+                        if email_type and email_type.value in classifications:
+                            assigned_employee_id = employee.id
+                            print(f"[LETTER] Auto-assigned to employee {employee.id} by classification")
+                            break
             
     except Exception as e:
         print(f"[LETTER] Error analyzing letter: {e}")
+        import traceback
+        traceback.print_exc()
         # Продолжаем создание письма даже если анализ не удался
         email_type = EmailType.OTHER
+        specialization = "Прочее"
         # Устанавливаем дедлайн 10 дней от даты создания
         from datetime import timedelta
         deadline = created_at + timedelta(days=10)
         deadline = deadline.replace(hour=23, minute=59, second=59)
         print(f"[LETTER] Analysis failed, setting default deadline: {deadline}")
     
-    # Если классификация не определена, дедлайн все равно 10 дней (уже установлен выше)
+    # Если специализация не определена, устанавливаем "Прочее"
+    if not specialization:
+        specialization = "Прочее"
+    
+    # Если письмо назначено сотруднику, сразу ставим статус IN_WORK
+    status = LetterStatus.IN_WORK if assigned_employee_id else LetterStatus.PENDING
     
     new_letter = Letter(
         content=letter_data.content,
-        status=LetterStatus.PENDING,
+        status=status,
         author_id=user.id,
         email_type=email_type,
+        specialization=specialization,
+        employee_id=assigned_employee_id,
         deadline=deadline,
         created_at=created_at  # Явно устанавливаем дату создания
     )
@@ -302,7 +355,9 @@ async def create_letter(
         "message": "Letter created successfully",
         "letter_id": new_letter.id,
         "email_type": email_type.value if email_type else None,
-        "deadline": deadline.isoformat() if deadline else None
+        "specialization": specialization,
+        "deadline": deadline.isoformat() if deadline else None,
+        "assigned_employee_id": assigned_employee_id
     }
 
 # Клиент: получить свои письма
@@ -325,6 +380,7 @@ async def get_my_letters(
             response=letter.response,
             employee_id=letter.employee_id,
             email_type=letter.email_type.value if letter.email_type else None,
+            specialization=letter.specialization,
             deadline=letter.deadline.isoformat() if letter.deadline else None,
             created_at=letter.created_at.isoformat() if letter.created_at else "",
             updated_at=letter.updated_at.isoformat() if letter.updated_at else ""
@@ -371,11 +427,23 @@ async def get_all_letters(
     if user.user_type != UserType.EMPLOYEE:
         raise HTTPException(status_code=403, detail="Only employees can view all letters")
     
-    # Фильтруем письма по классификации сотрудника
+    # Фильтруем письма по специализации сотрудника
     query = db.query(Letter)
     
-    # Если у сотрудника указана классификация, фильтруем по ней
-    if user.classification:
+    # Если у сотрудника указана специализация, фильтруем по ней
+    if user.specialization:
+        # Специализация может быть через запятую (несколько)
+        specializations = [s.strip() for s in user.specialization.split(',')]
+        # Фильтруем письма, которые соответствуют специализации сотрудника
+        from sqlalchemy import or_
+        conditions = []
+        for spec in specializations:
+            conditions.append(Letter.specialization == spec)
+        
+        if conditions:
+            query = query.filter(or_(*conditions))
+    # Если специализация не указана, проверяем старое поле classification
+    elif user.classification:
         # Классификация может быть через запятую (несколько типов)
         classifications = [c.strip() for c in user.classification.split(',')]
         # Фильтруем письма, которые соответствуют классификации сотрудника или не имеют классификации
@@ -390,7 +458,7 @@ async def get_all_letters(
         
         if conditions:
             query = query.filter(or_(*conditions, Letter.email_type.is_(None)))
-    # Если классификация не указана, сотрудник видит все письма
+    # Если ни специализация, ни классификация не указаны, сотрудник видит все письма
     
     letters = query.order_by(Letter.created_at.desc()).all()
     
@@ -402,6 +470,7 @@ async def get_all_letters(
             response=letter.response,
             employee_id=letter.employee_id,
             email_type=letter.email_type.value if letter.email_type else None,
+            specialization=letter.specialization,
             deadline=letter.deadline.isoformat() if letter.deadline else None,
             created_at=letter.created_at.isoformat() if letter.created_at else "",
             updated_at=letter.updated_at.isoformat() if letter.updated_at else ""

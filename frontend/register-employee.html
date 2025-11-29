@@ -30,35 +30,43 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="classification">Классификация писем (можно выбрать несколько):</label>
+                    <label for="specialization">Специализация (можно выбрать несколько):</label>
                     <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
                         <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" value="COMPLAINT" class="classification-checkbox" style="margin-right: 8px;">
-                            <span>Жалобы (COMPLAINT)</span>
+                            <input type="checkbox" value="Кредитование" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Кредитование (ипотека, автокредит, потребительский кредит)</span>
                         </label>
                         <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" value="INQUIRY" class="classification-checkbox" style="margin-right: 8px;">
-                            <span>Запросы информации (INQUIRY)</span>
+                            <input type="checkbox" value="Страхование" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Страхование (страхование жизни, имущества, ОСАГО)</span>
                         </label>
                         <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" value="APPLICATION" class="classification-checkbox" style="margin-right: 8px;">
-                            <span>Заявки на услуги (APPLICATION)</span>
+                            <input type="checkbox" value="Дебетовые/кредитные карты" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Дебетовые/кредитные карты</span>
                         </label>
                         <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" value="SUPPORT" class="classification-checkbox" style="margin-right: 8px;">
-                            <span>Техподдержка (SUPPORT)</span>
+                            <input type="checkbox" value="Инвестиции и накопления" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Инвестиции и накопления</span>
                         </label>
                         <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" value="CLARIFICATION" class="classification-checkbox" style="margin-right: 8px;">
-                            <span>Уточнения (CLARIFICATION)</span>
+                            <input type="checkbox" value="Онлайн-банкинг (ПСБ Онлайн)" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Онлайн-банкинг (ПСБ Онлайн)</span>
                         </label>
                         <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" value="OTHER" class="classification-checkbox" style="margin-right: 8px;">
-                            <span>Другое (OTHER)</span>
+                            <input type="checkbox" value="Кэшбэк и бонусы" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Кэшбэк и бонусы</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Открытие/закрытие счетов" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Открытие/закрытие счетов</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Прочее" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Прочее</span>
                         </label>
                     </div>
                     <small style="color: #666; display: block; margin-top: 8px;">
-                        Выберите типы писем, которые вы будете обрабатывать. Если ничего не выбрано, вы будете видеть все письма.
+                        Выберите специализации, которые вы будете обрабатывать. Если ничего не выбрано, вы будете видеть все письма.
                     </small>
                 </div>
 
@@ -80,10 +88,10 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
-            // Получаем выбранные классификации
-            const checkboxes = document.querySelectorAll('.classification-checkbox:checked');
-            const classifications = Array.from(checkboxes).map(cb => cb.value);
-            const classification = classifications.length > 0 ? classifications.join(',') : null;
+            // Получаем выбранные специализации
+            const checkboxes = document.querySelectorAll('.specialization-checkbox:checked');
+            const specializations = Array.from(checkboxes).map(cb => cb.value);
+            const specialization = specializations.length > 0 ? specializations.join(',') : null;
 
             try {
                 const response = await fetch('/api/register', {
@@ -94,7 +102,7 @@
                         email,
                         password,
                         user_type: 'employee',
-                        classification: classification
+                        specialization: specialization
                     })
                 });
 

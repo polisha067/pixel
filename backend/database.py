@@ -65,13 +65,15 @@ def init_db(reset_db=False):
         # Проверяем и добавляем недостающие колонки
         if 'users' in existing_tables_after:
             _add_missing_columns('users', [
-                ('classification', 'VARCHAR', 'NULL')
+                ('classification', 'VARCHAR', 'NULL'),
+                ('specialization', 'VARCHAR', 'NULL')
             ])
         
         if 'letters' in existing_tables_after:
             _add_missing_columns('letters', [
                 ('email_type', 'VARCHAR', 'NULL'),
-                ('deadline', 'DATETIME', 'NULL')
+                ('deadline', 'DATETIME', 'NULL'),
+                ('specialization', 'VARCHAR', 'NULL')
             ])
         
         if existing_tables:

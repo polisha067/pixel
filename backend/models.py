@@ -45,7 +45,18 @@ class LetterStatus(str, enum.Enum):
     RESPONSE_READY = "response_ready"  # Ответ готов, ожидает одобрения
     COMPLETED = "completed"  # Завершено
 
-# Enum для типа письма (классификация)
+# Enum для специализации сотрудников банка
+class Specialization(str, enum.Enum):
+    CREDIT = "Кредитование"  # Кредитование (ипотека, автокредит, потребительский кредит)
+    INSURANCE = "Страхование"  # Страхование (страхование жизни, имущества, ОСАГО)
+    CARDS = "Дебетовые/кредитные карты"  # Дебетовые/кредитные карты
+    INVESTMENTS = "Инвестиции и накопления"  # Инвестиции и накопления
+    ONLINE_BANKING = "Онлайн-банкинг (ПСБ Онлайн)"  # Онлайн-банкинг (ПСБ Онлайн)
+    CASHBACK = "Кэшбэк и бонусы"  # Кэшбэк и бонусы
+    ACCOUNTS = "Открытие/закрытие счетов"  # Открытие/закрытие счетов
+    OTHER = "Прочее"  # Прочее
+
+# Enum для типа письма (классификация) - оставляем для обратной совместимости
 class EmailType(str, enum.Enum):
     COMPLAINT = "COMPLAINT"  # Жалоба
     INQUIRY = "INQUIRY"  # Запрос информации
@@ -63,7 +74,9 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     user_type = Column(SQLEnum(UserType), nullable=False)
-    # Классификация для сотрудников (какие типы писем они обрабатывают)
+    # Специализация для сотрудников (какие услуги они обрабатывают)
+    specialization = Column(String, nullable=True)  # Может быть несколько через запятую или null для всех
+    # Старое поле classification оставляем для обратной совместимости
     classification = Column(String, nullable=True)  # Может быть несколько через запятую или null для всех
     created_at = Column(DateTime, default=lambda: get_msk_now())
     
@@ -90,7 +103,8 @@ class Letter(Base):
     status = Column(SQLEnum(LetterStatus), default=LetterStatus.PENDING)
     response = Column(String, nullable=True)
     # Классификация письма
-    email_type = Column(SQLEnum(EmailType), nullable=True)  # Тип письма (классификация)
+    email_type = Column(SQLEnum(EmailType), nullable=True)  # Тип письма (классификация) - для обратной совместимости
+    specialization = Column(String, nullable=True)  # Специализация, к которой относится письмо
     deadline = Column(DateTime, nullable=True)  # Дедлайн для ответа
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     employee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -112,7 +126,8 @@ class UserRegister(BaseModel):
     email: str
     password: str
     user_type: str
-    classification: str | None = None  # Классификация для сотрудников (через запятую или null)
+    specialization: str | None = None  # Специализация для сотрудников (через запятую или null)
+    classification: str | None = None  # Старое поле для обратной совместимости
 
 class UserLogin(BaseModel):
     username: str
@@ -127,7 +142,8 @@ class LetterResponse(BaseModel):
     status: str
     response: str | None
     employee_id: int | None
-    email_type: str | None  # Классификация письма
+    email_type: str | None  # Классификация письма (для обратной совместимости)
+    specialization: str | None  # Специализация письма
     deadline: str | None  # Дедлайн в формате ISO
     created_at: str
     updated_at: str
