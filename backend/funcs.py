@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Depends, status
+from fastapi import HTTPException, Depends, status, Header, APIRouter
 from sqlalchemy.orm import Session
 from models import User, Letter, LetterStatus, UserBusinessInfo, get_msk_now
 from database import get_db
@@ -7,14 +7,20 @@ from database import get_db
 user_sessions = {}
 
 
-def get_current_user(session_id: str, db: Session = Depends(get_db)):
-    """Получить текущего пользователя по session_id"""
-    if session_id not in user_sessions:
+def get_current_user(
+        x_session_id: str = Header(..., alias="X-Session-ID"),
+        db: Session = Depends(get_db)
+) -> User:
+    """Получить текущего пользователя по session_id из заголовка"""
+    if x_session_id not in user_sessions:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    user_id = user_sessions[session_id]
+
+    user_id = user_sessions[x_session_id]
     user = db.query(User).filter(User.id == user_id).first()
+
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+
     return user
 
 
