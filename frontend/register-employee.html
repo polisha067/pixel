@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация сотрудника</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Регистрация сотрудника банка</h1>
+        </header>
+
+        <main style="position: relative;">
+            <a href="/" style="position: absolute; left: 20px; top: 20px; color: #0d3550; text-decoration: none; display: inline-block; padding: 10px; cursor: pointer; z-index: 10;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0d3550" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </a>
+            <form id="register-form" class="auth-form">
+                <div class="form-group" style="display: flex; gap: 15px;">
+                    <div style="flex: 1;">
+                        <label for="first_name">Имя:</label>
+                        <input type="text" id="first_name" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label for="last_name">Фамилия:</label>
+                        <input type="text" id="last_name" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль (минимум 12 символов):</label>
+                    <div style="position: relative;">
+                        <input type="password" id="password" required minlength="12" maxlength="70" style="padding-right: 40px; width: 100%;">
+                        <span id="toggle-password" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; width: 20px; height: 20px; display: inline-block;">
+                            <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="specialization">Специализация (можно выбрать несколько):</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Кредитование" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Кредитование (ипотека, автокредит, потребительский кредит)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Страхование" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Страхование (страхование жизни, имущества, ОСАГО)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Дебетовые/кредитные карты" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Дебетовые/кредитные карты</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Инвестиции и накопления" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Инвестиции и накопления</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Онлайн-банкинг (ПСБ Онлайн)" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Онлайн-банкинг (ПСБ Онлайн)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Кэшбэк и бонусы" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Кэшбэк и бонусы</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Открытие/закрытие счетов" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Открытие/закрытие счетов</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="Прочее" class="specialization-checkbox" style="margin-right: 8px;">
+                            <span>Прочее</span>
+                        </label>
+                    </div>
+                    <small style="color: #666; display: block; margin-top: 8px;">
+                        Выберите специализации, которые вы будете обрабатывать. Если ничего не выбрано, вы будете видеть все письма.
+                    </small>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <!-- Кнопка: Зарегистрироваться (отправка формы регистрации сотрудника) - Экран: Регистрация сотрудника (register-employee.html) -->
+                    <button type="submit" class="btn btn-register">Зарегистрироваться</button>
+                </div>
+            </form>
+
+            <div class="auth-links" style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                <a href="/" style="color: white; text-decoration: none; opacity: 0.9;">На главную</a>
+                <!-- Кнопка: Войти (переход на страницу входа) - Экран: Регистрация сотрудника (register-employee.html) -->
+                <button class="btn btn-primary btn-login-large" onclick="window.location.href='/login.html'" style="background: #0d3550; color: white;" onmouseover="this.style.background='#0a2a40'" onmouseout="this.style.background='#0d3550'">
+                    Войти
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Переключение видимости пароля
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                // Глаз без перечеркивания (пароль виден)
+                eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            } else {
+                passwordInput.type = 'password';
+                // Глаз с перечеркиванием (пароль скрыт)
+                eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const first_name = document.getElementById('first_name').value.trim();
+            const last_name = document.getElementById('last_name').value.trim();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!first_name || !last_name) {
+                alert('Пожалуйста, заполните имя и фамилию');
+                return;
+            }
+
+            if (password.length < 12) {
+                alert('Пароль должен содержать минимум 12 символов');
+                return;
+            }
+            
+            // Получаем выбранные специализации
+            const checkboxes = document.querySelectorAll('.specialization-checkbox:checked');
+            const specializations = Array.from(checkboxes).map(cb => cb.value);
+            const specialization = specializations.length > 0 ? specializations.join(',') : null;
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name,
+                        last_name,
+                        email,
+                        password,
+                        user_type: 'employee',
+                        specialization: specialization
+                    })
+                });
+
+                // Проверяем тип контента
+                const contentType = response.headers.get('content-type');
+                let data;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // Если ответ не JSON, читаем как текст
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
+                    throw new Error(`Server error: ${response.status} ${response.statusText}. Check server logs.`);
+                }
+                
+                if (response.ok) {
+                    alert('Регистрация успешна! Теперь войдите в систему.');
+                    window.location.href = '/login.html';
+                } else {
+                    alert('Ошибка: ' + (data.detail || data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Ошибка регистрации: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

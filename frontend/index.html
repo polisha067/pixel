@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Банковская система - Главная</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Банковская система</h1>
+            <p>Выберите тип регистрации</p>
+        </header>
+
+        <main>
+            <div class="registration-cards">
+                <div class="reg-card">
+                    <div class="reg-icon"></div>
+                    <h2>Клиент банка</h2>
+                    <p>Регистрация для клиентов банка</p>
+                    <!-- Кнопка: Зарегистрироваться (клиент) - Экран: Главная страница (index.html) -->
+                    <button class="btn btn-primary" onclick="window.location.href='/register-client.html'">
+                        Зарегистрироваться
+                    </button>
+                </div>
+
+                <div class="reg-card">
+                    <div class="reg-icon"></div>
+                    <h2>Сотрудник банка</h2>
+                    <p>Регистрация для сотрудников банка</p>
+                    <!-- Кнопка: Зарегистрироваться (сотрудник) - Экран: Главная страница (index.html) -->
+                    <button class="btn btn-primary" onclick="window.location.href='/register-employee.html'">
+                        Зарегистрироваться
+                    </button>
+                </div>
+            </div>
+
+            <div class="login-section">
+                <h2>Уже зарегистрированы?</h2>
+                <!-- Кнопка: Войти - Экран: Главная страница (index.html) -->
+                <button class="btn btn-register btn-login-large" onclick="window.location.href='/login.html'">
+                    Войти
+                </button>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Банковская система для ПСБ банка от молодой команды pixel</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,514 @@
+/* Основные стили */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: linear-gradient(135deg, #e67e22 0%, #0d3550 100%);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 40px;
+    color: white;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+header p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+/* Main content */
+main {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+}
+
+/* Sections */
+section {
+    margin-bottom: 40px;
+}
+
+section h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #3498db;
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #0d3550;
+}
+
+textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 16px;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Buttons */
+/* Базовый класс для всех кнопок - используется на всех экранах */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Кнопка: Основной стиль (синий) - используется для: "Взять в работу", "Сохранить", "Редактировать", "Отправить письмо" - Экран: Панель сотрудника, Панель клиента */
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+}
+
+/* Кнопка: Успешное действие (зеленый) - используется для: "Сгенерировать ответ", "Одобрить" - Экран: Панель сотрудника */
+.btn-success {
+    background: #27ae60;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #219a52;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+}
+
+/* Кнопка: Предупреждение (желтый/оранжевый) - используется для: "Выйти" (на панели клиента), "Перегенерировать" - Экран: Панель клиента, Панель сотрудника */
+.btn-warning {
+    background: #f39c12;
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #e67e22;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+}
+
+/* Кнопка: Регистрация/Вход (оранжевый) - используется для: "Войти", "Зарегистрироваться" (на формах регистрации), "Выйти" (на панели сотрудника) - Экран: Главная страница, Страница входа, Страницы регистрации, Панель сотрудника */
+.btn-register {
+    background: #e67e22;
+    color: white;
+}
+
+.btn-register:hover {
+    background: #d35400;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
+}
+
+/* Analysis cards */
+.analysis-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.analysis-card h3 {
+    color: #495057;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}
+
+.analysis-card p, .analysis-card ul {
+    color: #6c757d;
+}
+
+/* Style selector */
+.style-selector {
+    margin-bottom: 20px;
+}
+
+.style-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.style-btn {
+    padding: 10px 20px;
+    border: 2px solid #3498db;
+    background: white;
+    color: #3498db;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.style-btn:hover, .style-btn.active {
+    background: #3498db;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Response output */
+.response-output {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #27ae60;
+}
+
+.response-text {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.response-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Workflow */
+.workflow-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px solid #ddd;
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.step.active {
+    border-color: #3498db;
+    background: #e3f2fd;
+}
+
+.step.completed {
+    border-color: #27ae60;
+    background: #e8f5e8;
+}
+
+.step-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.step-text {
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    color: white;
+    padding: 20px;
+    opacity: 0.8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    .workflow-steps {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .response-actions {
+        flex-direction: column;
+    }
+
+    .style-buttons {
+        justify-content: center;
+    }
+}
+
+/* Loading animation */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Status messages */
+.status-message {
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+.status-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.status-info {
+    background: #cce7ff;
+    color: #004085;
+    border: 1px solid #b3d7ff;
+}
+
+/* Registration cards */
+.registration-cards {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    margin: 40px 0;
+    flex-wrap: wrap;
+}
+
+.reg-card {
+    background: white;
+    border-radius: 15px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.reg-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.reg-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.reg-card h2 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.reg-card p {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+}
+
+/* Кнопка: Зарегистрироваться (темно-синий) - используется для: "Зарегистрироваться" (клиент и сотрудник) - Экран: Главная страница (index.html) */
+.reg-card .btn-primary {
+    background: #0d3550;
+    color: white;
+}
+
+.reg-card .btn-primary:hover {
+    background: #0a2a40;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(13, 53, 80, 0.4);
+}
+
+/* Auth forms */
+.auth-form {
+    max-width: 400px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.auth-links a {
+    color: white;
+    text-decoration: none;
+    margin: 0 10px;
+    opacity: 0.9;
+}
+
+.auth-links a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Letter cards */
+.letter-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.letter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.letter-status {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.letter-date {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.letter-content,
+.letter-response {
+    margin: 15px 0;
+}
+
+.letter-content p,
+.letter-response p {
+    margin-top: 10px;
+    padding: 15px;
+    background: white;
+    border-radius: 5px;
+    white-space: pre-wrap;
+}
+
+.letter-actions {
+    margin-top: 15px;
+}
+
+/* Stats */
+.stats-section {
+    margin-bottom: 30px;
+}
+
+/* Карточка статистики - Экран: Панель сотрудника (employee-dashboard.html) */
+.stats-card {
+    background: #0d3550;
+    border: 2px solid #0a2a40;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    font-size: 1.2rem;
+    color: white;
+}
+
+.login-section {
+    text-align: center;
+    margin-top: 0px;
+    color: rgb(205, 169, 68);
+}
+
+.login-section h2 {
+    color: white;
+    margin-bottom: 15px;
+}
+
+
+.btn-login-large {
+    padding: 16px 40px;
+    font-size: 18px;
+}
