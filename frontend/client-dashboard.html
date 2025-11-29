@@ -64,6 +64,9 @@
                     let actions = '';
                     // Клиент больше не одобряет письма - это делает сотрудник
 
+                    // Показываем ответ клиенту ТОЛЬКО если письмо одобрено (статус completed)
+                    const showResponse = letter.status === 'completed' && letter.response;
+                    
                     return `
                         <div class="letter-card">
                             <div class="letter-header">
@@ -74,7 +77,7 @@
                                 <strong>Письмо:</strong>
                                 <p>${letter.content}</p>
                             </div>
-                            ${letter.response ? `
+                            ${showResponse ? `
                                 <div class="letter-response">
                                     <strong>Ответ:</strong>
                                     <p>${letter.response}</p>

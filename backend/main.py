@@ -412,7 +412,8 @@ async def get_my_letters(
             id=letter.id,
             content=letter.content,
             status=letter.status.value,
-            response=letter.response,
+            # Показываем ответ клиенту ТОЛЬКО если письмо одобрено (статус completed)
+            response=letter.response if letter.status == LetterStatus.COMPLETED else None,
             employee_id=letter.employee_id,
             email_type=letter.email_type.value if letter.email_type else None,
             specialization=letter.specialization,
