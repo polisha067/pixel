@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from models import Base, engine, SessionLocal
 
-# Импорт библиотек для хеширования паролей
 try:
     from passlib.context import CryptContext
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -17,7 +16,6 @@ except ImportError:
     print("[WARNING] bcrypt not installed, using simple hash (NOT SECURE)")
     HAS_BCRYPT = False
 
-# Простая заглушка если ничего не установлено
 if not HAS_PASSLIB and not HAS_BCRYPT:
     class SimpleHash:
         def hash(self, password):
@@ -36,16 +34,7 @@ def get_db():
         db.close()
 
 def init_db(reset_db=False):
-    """
-    Инициализирует базу данных, создавая таблицы только если их еще нет.
-    Данные сохраняются между перезапусками.
-    Автоматически добавляет недостающие колонки при обновлении схемы.
-    
-    Args:
-        reset_db: Если True, удаляет все таблицы и создает заново (только для разработки!)
-    """
     try:
-        # Проверяем, существуют ли таблицы
         from sqlalchemy import inspect, text
         inspector = inspect(engine)
         existing_tables = inspector.get_table_names()
@@ -56,13 +45,10 @@ def init_db(reset_db=False):
             print("[DB] All tables dropped")
             existing_tables = []
         
-        # Создаем таблицы только если их еще нет
         Base.metadata.create_all(bind=engine)
         
-        # Обновляем список существующих таблиц после создания
         existing_tables_after = inspector.get_table_names()
         
-        # Проверяем и добавляем недостающие колонки
         if 'users' in existing_tables_after:
             _add_missing_columns('users', [
                 ('classification', 'VARCHAR', 'NULL'),
@@ -78,7 +64,6 @@ def init_db(reset_db=False):
                 ('specialization', 'VARCHAR', 'NULL')
             ])
         
-        # Проверяем и добавляем таблицу user_business_info
         if 'user_business_info' not in existing_tables_after:
             print("[DB] Creating user_business_info table")
             Base.metadata.create_all(bind=engine)
@@ -92,7 +77,6 @@ def init_db(reset_db=False):
         print(f"[DB] Error initializing database: {str(e)}")
         import traceback
         traceback.print_exc()
-        # Пытаемся создать таблицы в любом случае
         try:
             Base.metadata.create_all(bind=engine)
             print("[DB] Database tables created (fallback)")
@@ -100,13 +84,6 @@ def init_db(reset_db=False):
             print(f"[DB] Failed to create tables: {str(e2)}")
 
 def _add_missing_columns(table_name, columns):
-    """
-    Добавляет недостающие колонки в существующую таблицу.
-    
-    Args:
-        table_name: Имя таблицы
-        columns: Список кортежей (имя_колонки, тип, default)
-    """
     try:
         from sqlalchemy import inspect, text
         inspector = inspect(engine)
@@ -115,8 +92,6 @@ def _add_missing_columns(table_name, columns):
         for col_name, col_type, col_default in columns:
             if col_name not in existing_columns:
                 print(f"[DB] Adding missing column: {table_name}.{col_name}")
-                # SQLite поддерживает только ADD COLUMN с ограничениями
-                # Для NULL значений просто добавляем колонку без DEFAULT
                 if col_default == 'NULL':
                     alter_sql = f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}"
                 else:
@@ -131,9 +106,6 @@ def _add_missing_columns(table_name, columns):
         traceback.print_exc()
 
 def verify_password(plain_password, hashed_password):
-    """
-    Проверяет соответствие пароля хешу.
-    """
     try:
         if not plain_password or not hashed_password:
             return False
@@ -141,53 +113,38 @@ def verify_password(plain_password, hashed_password):
         if HAS_PASSLIB:
             return pwd_context.verify(plain_password, hashed_password)
         elif HAS_BCRYPT:
-            # Используем bcrypt напрямую
             if isinstance(plain_password, str):
                 plain_password = plain_password.encode('utf-8')
             if isinstance(hashed_password, str):
                 hashed_password = hashed_password.encode('utf-8')
             return bcrypt.checkpw(plain_password, hashed_password)
         else:
-            # Простая проверка для заглушки
             return pwd_context.verify(plain_password, hashed_password)
     except Exception as e:
         print(f"[ERROR] Password verification error: {str(e)}")
         return False
 
 def get_password_hash(password):
-    """
-    Хеширует пароль с использованием bcrypt.
-    Bcrypt ограничивает длину пароля до 72 байт (не символов!).
-    Функция автоматически обрезает пароль до 72 байт, если он длиннее.
-    """
     try:
-        # Убеждаемся, что пароль - строка
         if password is None:
             raise ValueError("Password cannot be None")
         
         if not isinstance(password, str):
             password = str(password)
         
-        # Кодируем в UTF-8 для подсчета байт
         password_bytes = password.encode('utf-8')
         
-        # Bcrypt ограничивает до 72 байт - обрезаем если нужно
         if len(password_bytes) > 72:
             password_bytes = password_bytes[:72]
         
-        # Хешируем пароль
         if HAS_PASSLIB:
-            # Passlib работает со строками, но мы передаем байты для безопасности
-            # Декодируем обратно в строку для passlib
             password_str = password_bytes.decode('utf-8', errors='ignore')
             hashed = pwd_context.hash(password_str)
         elif HAS_BCRYPT:
-            # Используем bcrypt напрямую (работает с байтами)
             salt = bcrypt.gensalt()
             hashed_bytes = bcrypt.hashpw(password_bytes, salt)
             hashed = hashed_bytes.decode('utf-8')
         else:
-            # Простая заглушка
             password_str = password_bytes.decode('utf-8', errors='ignore')
             hashed = pwd_context.hash(password_str)
         

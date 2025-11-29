@@ -37,7 +37,6 @@ async def analyze_mail(email):
         if "email_type" not in result or "deadline" not in result:
             raise ValueError("Invalid response structure from API")
         
-        # Если specialization не указана, устанавливаем "Прочее"
         if "specialization" not in result:
             result["specialization"] = "Прочее"
 
@@ -62,15 +61,6 @@ async def generate_mail(email, instructions):
 
 
 async def extract_business_info(email_content):
-    """
-    Извлекает важную бизнес-информацию о клиенте из письма.
-    
-    Args:
-        email_content: Текст письма от клиента
-    
-    Returns:
-        Словарь с извлеченной информацией (например, {"has_credit_card": true})
-    """
     try:
         response = client.responses.create(
             model=model,
@@ -81,14 +71,11 @@ async def extract_business_info(email_content):
 
         result_text = response.output_text.strip()
         
-        # Убираем markdown код блоки, если есть
         if result_text.startswith("```"):
-            # Удаляем ```json и ``` в начале и конце
             result_text = result_text.replace("```json", "").replace("```", "").strip()
 
         result = json.loads(result_text)
         
-        # Фильтруем только важные поля
         important_keys = [
             "has_credit_card", "has_debit_card", "has_mortgage", 
             "has_car_loan", "has_consumer_loan", "has_account", "has_insurance"
@@ -113,15 +100,6 @@ async def extract_business_info(email_content):
 
 
 def format_business_info_context(business_info: dict) -> str:
-    """
-    Форматирует бизнес-информацию для включения в контекст генерации ответа.
-    
-    Args:
-        business_info: Словарь с бизнес-информацией
-    
-    Returns:
-        Отформатированная строка с информацией
-    """
     if not business_info:
         return ""
     
@@ -155,15 +133,6 @@ def format_business_info_context(business_info: dict) -> str:
 
 
 def format_letter_history(letters_history):
-    """
-    Форматирует историю писем для включения в контекст генерации.
-    
-    Args:
-        letters_history: Список словарей с ключами 'content', 'response', 'created_at'
-    
-    Returns:
-        Отформатированная строка с историей переписки
-    """
     if not letters_history:
         return ""
     
@@ -180,7 +149,6 @@ def format_letter_history(letters_history):
         formatted_history.append(letter.get('content', ''))
         formatted_history.append("")
         
-        # Если есть ответ, добавляем его
         if letter.get('response'):
             formatted_history.append("ОТВЕТ БАНКА:")
             formatted_history.append(letter.get('response', ''))
@@ -198,29 +166,12 @@ def format_letter_history(letters_history):
 
 
 async def generate_answer(incoming_letter, letters_history=None, business_info=None):
-    """
-    Генерирует ответ на входящее письмо с учетом истории переписки и бизнес-информации о клиенте.
-    
-    Args:
-        incoming_letter: Текст текущего письма от клиента
-        letters_history: Список предыдущих писем клиента (опционально).
-                        Каждый элемент должен быть словарем с ключами:
-                        'content' (текст письма), 'response' (ответ банка, если есть),
-                        'created_at' (дата создания)
-        business_info: Словарь с бизнес-информацией о клиенте (опционально).
-                      Например, {"has_credit_card": True, "has_mortgage": False}
-    
-    Returns:
-        Сгенерированный ответ
-    """
     email_analisys = await analyze_mail(incoming_letter)
     email_type = email_analisys.get("email_type", "OTHER")
     specialization = email_analisys.get("specialization", None)
     
-    # Получаем релевантный контекст из базы знаний ПСБ
     rag_context = await get_rag_context(incoming_letter)
     
-    # Форматируем историю переписки, если она есть
     history_context = ""
     if letters_history:
         history_context = format_letter_history(letters_history)
@@ -228,7 +179,6 @@ async def generate_answer(incoming_letter, letters_history=None, business_info=N
         if history_context:
             print(f"[HISTORY] История сформирована ({len(history_context)} символов)")
     
-    # Форматируем бизнес-информацию, если она есть
     business_info_context = ""
     if business_info:
         business_info_context = format_business_info_context(business_info)
@@ -236,14 +186,11 @@ async def generate_answer(incoming_letter, letters_history=None, business_info=N
             print(f"[BIZ_INFO] Используется бизнес-информация о клиенте")
             print(f"[BIZ_INFO] Информация: {business_info}")
     
-    # Логируем для отладки
     if rag_context:
         print(f"[RAG] Извлечен контекст ({len(rag_context)} символов):")
         print(f"[RAG] Первые 200 символов: {rag_context[:200]}...")
     else:
         print("[RAG] ВНИМАНИЕ: Контекст из базы знаний не извлечен!")
-    
-    # Объединяем контексты
     full_context = history_context
     if business_info_context:
         full_context = (full_context + "\n" + business_info_context) if full_context else business_info_context

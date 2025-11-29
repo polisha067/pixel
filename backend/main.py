@@ -9,7 +9,6 @@ import os
 
 app = FastAPI()
 
-# Глобальный обработчик исключений для возврата JSON вместо HTML
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     import traceback
@@ -21,11 +20,8 @@ async def global_exception_handler(request, exc):
         content={"detail": f"Internal server error: {error_msg}"}
     )
 
-# Инициализация базы данных
 try:
     print("[INIT] Initializing database...")
-    # В Docker сохраняем данные между перезапусками
-    # Для очистки БД установите RESET_DB=true в .env
     reset_db = os.getenv('RESET_DB', 'false').lower() == 'true'
     if reset_db:
         print("[INIT] Resetting database on startup (data will be cleared)")
@@ -38,7 +34,6 @@ except Exception as e:
     import traceback
     traceback.print_exc()
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,7 +42,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Получаем путь к frontend
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 print(f"[INIT] Frontend directory: {FRONTEND_DIR}")
@@ -55,11 +49,9 @@ print(f"[INIT] Frontend exists: {os.path.exists(FRONTEND_DIR)}")
 if os.path.exists(FRONTEND_DIR):
     files = os.listdir(FRONTEND_DIR)
     print(f"[INIT] Frontend files: {files}")
-    # Проверяем наличие HTML файлов
     html_files = [f for f in files if f.endswith('.html')]
     print(f"[INIT] HTML files found: {html_files}")
 
-# Монтируем статические файлы (CSS, JS)
 if os.path.exists(FRONTEND_DIR):
     print(f"[INIT] Mounting static files from: {FRONTEND_DIR}")
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
@@ -67,7 +59,6 @@ if os.path.exists(FRONTEND_DIR):
 else:
     print(f"[INIT] WARNING: Frontend directory not found, static files not mounted")
 
-# Подключаем роутеры
 app.include_router(router)
 
 if __name__ == '__main__':
@@ -78,13 +69,11 @@ if __name__ == '__main__':
     print(f"[INIT] BASE_DIR: {BASE_DIR}")
     print(f"[INIT] FRONTEND_DIR: {FRONTEND_DIR}")
     print("=" * 50)
-    # Выводим все зарегистрированные маршруты
     print("\n[INIT] Registered routes:")
     for route in app.routes:
         if hasattr(route, 'path') and hasattr(route, 'methods'):
             print(f"  {list(route.methods)} {route.path}")
     print("=" * 50)
-    # В Docker используем 0.0.0.0, локально - 127.0.0.1
     host = os.getenv('HOST', '127.0.0.1')
     port = int(os.getenv('PORT', '8001'))
     print(f"[INIT] Starting server on {host}:{port}")
