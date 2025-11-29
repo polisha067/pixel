@@ -1,113 +1,162 @@
 """
 RAG система для поиска релевантной информации из базы знаний ПСБ
+Работает с файлами в папке knowledge_base/
 """
 import os
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
-# Путь к базе знаний
-KNOWLEDGE_BASE_PATH = os.path.join(os.path.dirname(__file__), 'psb_knowledge_base.txt')
+# Путь к папке с базой знаний
+KNOWLEDGE_BASE_DIR = os.path.join(os.path.dirname(__file__), 'knowledge_base')
+
+# Маппинг ключевых слов к файлам базы знаний
 
 
-def load_knowledge_base() -> str:
-    """Загружает базу знаний из файла"""
+def load_knowledge_file(filename: str) -> str:
+    """Загружает содержимое файла из базы знаний"""
+    filepath = os.path.join(KNOWLEDGE_BASE_DIR, filename)
     try:
-        with open(KNOWLEDGE_BASE_PATH, 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             return f.read()
     except FileNotFoundError:
-        print(f"[RAG] Warning: Knowledge base file not found at {KNOWLEDGE_BASE_PATH}")
+        print(f"[RAG] Warning: Knowledge file not found: {filepath}")
+        return ""
+    except Exception as e:
+        print(f"[RAG] Error loading {filename}: {e}")
         return ""
 
 
-def extract_relevant_context(query: str, knowledge_base: str, max_chunks: int = 3) -> str:
+def load_all_knowledge_base() -> Dict[str, str]:
+    """Загружает все файлы базы знаний"""
+    knowledge_files = {}
+    
+    if not os.path.exists(KNOWLEDGE_BASE_DIR):
+        print(f"[RAG] Warning: Knowledge base directory not found: {KNOWLEDGE_BASE_DIR}")
+        return knowledge_files
+    
+    # Загружаем все файлы из папки
+    for filename in os.listdir(KNOWLEDGE_BASE_DIR):
+        if filename.endswith('.txt'):
+            file_key = filename.replace('.txt', '')
+            content = load_knowledge_file(filename)
+            if content:
+                knowledge_files[file_key] = content
+    
+    return knowledge_files
+
+
+def determine_relevant_files(query: str) -> List[str]:
+    """
+    Определяет, какие файлы базы знаний релевантны запросу
+    """
+    query_lower = query.lower()
+    relevant_files = set()
+    
+    # Прямое сопоставление ключевых слов с файлами
+    keyword_to_file = {
+        # Кредитование
+        "ипотека": "credit.txt",
+        "ипотечный": "credit.txt",
+        "ипотеку": "credit.txt",
+        "ипотеке": "credit.txt",
+        "автокредит": "credit.txt",
+        "автомобиль": "credit.txt",
+        "машина": "credit.txt",
+        "потребительский кредит": "credit.txt",
+        "ставка": "credit.txt",
+        "ставку": "credit.txt",
+        "взнос": "credit.txt",
+        "возраст": "credit.txt",
+        # Карты
+        "кредитная карта": "cards.txt",
+        "кредитка": "cards.txt",
+        "дебетовая карта": "cards.txt",
+        "дебетка": "cards.txt",
+        "карта": "cards.txt",
+        "лимит": "cards.txt",
+        "льготный период": "cards.txt",
+        # Страхование
+        "страхование": "insurance.txt",
+        "страховка": "insurance.txt",
+        "осаго": "insurance.txt",
+        "каско": "insurance.txt",
+        "полис": "insurance.txt",
+        # Инвестиции
+        "инвестиции": "investments.txt",
+        "инвест": "investments.txt",
+        "пиф": "investments.txt",
+        "офз": "investments.txt",
+        "облигации": "investments.txt",
+        "акции": "investments.txt",
+        "накопления": "investments.txt",
+        "накопительный счет": "investments.txt",
+        # Онлайн-банкинг
+        "онлайн": "online_banking.txt",
+        "интернет-банк": "online_banking.txt",
+        "псб онлайн": "online_banking.txt",
+        "мобильное приложение": "online_banking.txt",
+        "платежи": "online_banking.txt",
+        "переводы": "online_banking.txt",
+        # Кэшбэк
+        "кэшбэк": "cashback.txt",
+        "бонусы": "cashback.txt",
+        "cashback": "cashback.txt",
+        # Счета
+        "счет": "accounts.txt",
+        "открытие счета": "accounts.txt",
+        "закрытие счета": "accounts.txt",
+        # Контакты
+        "контакты": "contacts.txt",
+        "отделение": "contacts.txt",
+        "горячая линия": "contacts.txt",
+        "телефон": "contacts.txt",
+        "адрес": "contacts.txt"
+    }
+    
+    # Проверяем ключевые слова
+    for keyword, filename in keyword_to_file.items():
+        if keyword in query_lower:
+            relevant_files.add(filename)
+    
+    # Если ничего не найдено, возвращаем основные файлы
+    if not relevant_files:
+        relevant_files = {"credit.txt", "contacts.txt"}  # Базовые файлы
+    
+    return list(relevant_files)
+
+
+def extract_relevant_context(query: str, knowledge_files: Dict[str, str]) -> str:
     """
     Извлекает релевантный контекст из базы знаний на основе запроса.
-    Использует простой поиск по ключевым словам и разбиение на секции.
     
     Args:
         query: Запрос клиента
-        max_chunks: Максимальное количество релевантных секций для возврата
+        knowledge_files: Словарь с содержимым файлов базы знаний
     
     Returns:
         Релевантный контекст из базы знаний
     """
-    if not knowledge_base:
+    if not knowledge_files:
         return ""
     
-    # Ключевые слова для каждой категории
-    category_keywords = {
-        "ипотека": ["ипотека", "ипотечный", "ипотеку", "ипотеке", "недвижимость", "квартира", "дом", "жилье", "материнский капитал", "молодая семья", "военная ипотека", "ставка", "ставку", "возраст", "взнос"],
-        "автокредит": ["автокредит", "автомобиль", "машина", "авто", "транспорт", "лизинг", "trade-in"],
-        "потребительский кредит": ["потребительский кредит", "кредит", "займ", "ссуда", "деньги в долг"],
-        "кредитные карты": ["кредитная карта", "кредитка", "лимит", "льготный период"],
-        "дебетовые карты": ["дебетовая карта", "дебетка", "карта", "снятие наличных", "обслуживание"],
-        "страхование": ["страхование", "страховка", "осаго", "каско", "полис", "страховой"],
-        "инвестиции": ["инвестиции", "инвест", "пиф", "офз", "облигации", "акции", "накопления", "накопительный счет"],
-        "онлайн-банкинг": ["онлайн", "интернет-банк", "псб онлайн", "мобильное приложение", "платежи", "переводы", "калькулятор"],
-        "кэшбэк": ["кэшбэк", "бонусы", "cashback", "начисления", "проценты"],
-        "счета": ["счет", "открытие счета", "закрытие счета", "расчетный счет", "текущий счет"]
-    }
+    # Определяем релевантные файлы
+    relevant_filenames = determine_relevant_files(query)
     
-    query_lower = query.lower()
+    # Собираем контекст из релевантных файлов
+    context_parts = []
     
-    # Определяем релевантные категории
-    relevant_categories = []
-    for category, keywords in category_keywords.items():
-        if any(keyword in query_lower for keyword in keywords):
-            relevant_categories.append(category)
+    for filename in relevant_filenames:
+        file_key = filename.replace('.txt', '')
+        if file_key in knowledge_files:
+            content = knowledge_files[file_key]
+            context_parts.append(f"=== {file_key.upper().replace('_', ' ')} ===\n{content}")
+            print(f"[RAG] Добавлен файл: {filename}")
     
-    # Если не найдено совпадений, возвращаем общую информацию
-    if not relevant_categories:
-        # Возвращаем первые несколько разделов базы знаний
-        sections = knowledge_base.split('\n\n')
-        return '\n\n'.join(sections[:max_chunks])
+    # Если ничего не найдено, возвращаем первые файлы
+    if not context_parts:
+        for file_key, content in list(knowledge_files.items())[:2]:
+            context_parts.append(f"=== {file_key.upper().replace('_', ' ')} ===\n{content}")
     
-    # Извлекаем релевантные секции из базы знаний
-    # Для запросов об ипотеке, ставках, возрасте - ищем весь раздел с ипотекой
-    if "ипотека" in relevant_categories or any(kw in query_lower for kw in ["ставка", "ставку", "минимальная ставка", "возраст", "взнос", "ипотеку", "ипотеке", "ипотечный"]):
-        # Ищем раздел "1.1. Ипотека" целиком
-        lines = knowledge_base.split('\n')
-        mortgage_start = None
-        mortgage_end = None
-        
-        for i, line in enumerate(lines):
-            # Ищем начало раздела об ипотеке
-            if "1.1. Ипотека" in line or ("Ипотека" in line and i > 0 and "1.1" in lines[i-1]):
-                mortgage_start = i
-            # Ищем конец раздела (начало следующего раздела)
-            elif mortgage_start is not None:
-                line_stripped = line.strip()
-                if line_stripped.startswith("1.2") or line_stripped.startswith("2.") or (line_stripped and line_stripped[0].isdigit() and "1.1" not in line):
-                    mortgage_end = i
-                    break
-        
-        if mortgage_start is not None:
-            mortgage_end = mortgage_end if mortgage_end else len(lines)
-            mortgage_section = '\n'.join(lines[mortgage_start:mortgage_end])
-            print(f"[RAG] Найден раздел об ипотеке: строки {mortgage_start}-{mortgage_end}")
-            return mortgage_section
-        else:
-            print("[RAG] Раздел об ипотеке не найден, используем обычный поиск")
-    
-    # Для других категорий используем обычный поиск
-    sections = knowledge_base.split('\n\n')
-    relevant_sections = []
-    
-    for section in sections:
-        section_lower = section.lower()
-        # Проверяем, содержит ли секция ключевые слова из релевантных категорий
-        for category in relevant_categories:
-            keywords = category_keywords[category]
-            if any(keyword in section_lower for keyword in keywords):
-                if section not in relevant_sections:
-                    relevant_sections.append(section)
-                break
-    
-    # Если нашли релевантные секции, возвращаем их
-    if relevant_sections:
-        return '\n\n'.join(relevant_sections[:max_chunks])
-    
-    # Если ничего не найдено, возвращаем начало базы знаний
-    return '\n\n'.join(sections[:2])
+    return "\n\n".join(context_parts)
 
 
 async def get_rag_context(query: str) -> str:
@@ -121,20 +170,24 @@ async def get_rag_context(query: str) -> str:
     Returns:
         Релевантный контекст из базы знаний ПСБ
     """
-    knowledge_base = load_knowledge_base()
-    if not knowledge_base:
-        print("[RAG] ОШИБКА: База знаний пуста!")
+    # Загружаем все файлы базы знаний
+    knowledge_files = load_all_knowledge_base()
+    
+    if not knowledge_files:
+        print("[RAG] ОШИБКА: База знаний пуста или не найдена!")
         return ""
     
-    context = extract_relevant_context(query, knowledge_base)
+    print(f"[RAG] Загружено файлов базы знаний: {len(knowledge_files)}")
+    
+    # Извлекаем релевантный контекст
+    context = extract_relevant_context(query, knowledge_files)
     
     # Логируем для отладки
     print(f"[RAG] Запрос: {query[:100]}...")
     print(f"[RAG] Извлечен контекст: {len(context)} символов")
     if context:
-        print(f"[RAG] Начало контекста: {context[:150]}...")
+        print(f"[RAG] Начало контекста: {context[:200]}...")
     else:
         print("[RAG] ВНИМАНИЕ: Контекст не извлечен!")
     
     return context
-
