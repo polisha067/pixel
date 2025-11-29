@@ -177,8 +177,9 @@
                     let responseSection = '';
                     
                     // Проверяем, редактируется ли этот ответ
-                    const isEditing = editingResponses[letter.id];
-                    const currentResponse = isEditing !== undefined ? isEditing : (letter.response || '');
+                    // Используем строгую проверку наличия ключа в объекте
+                    const isEditing = letter.id in editingResponses;
+                    const currentResponse = isEditing ? editingResponses[letter.id] : (letter.response || '');
 
                     // Отладочная информация (можно удалить после проверки)
                     if (letter.status === 'in_work') {
@@ -440,7 +441,16 @@
                 alert('Ошибка: не удалось получить текст ответа для редактирования');
                 return;
             }
+            // Очищаем редактирование для всех других писем
+            // Сохраняем только текущее письмо в режиме редактирования
+            Object.keys(editingResponses).forEach(id => {
+                if (Number(id) !== Number(letterId)) {
+                    delete editingResponses[id];
+                }
+            });
+            // Устанавливаем редактирование только для выбранного письма
             editingResponses[letterId] = currentResponse;
+            console.log('Editing responses after startEdit:', editingResponses);
             loadLetters();
         }
 

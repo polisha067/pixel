@@ -32,9 +32,14 @@ async def global_exception_handler(request, exc):
 # Инициализация базы данных
 try:
     print("[INIT] Initializing database...")
-    # Всегда очищаем БД при запуске (данные хранятся только между перезапусками программы)
-    print("[INIT] Resetting database on startup (data will be cleared)")
-    init_db(reset_db=True)
+    # В Docker сохраняем данные между перезапусками
+    # Для очистки БД установите RESET_DB=true в .env
+    reset_db = os.getenv('RESET_DB', 'false').lower() == 'true'
+    if reset_db:
+        print("[INIT] Resetting database on startup (data will be cleared)")
+    else:
+        print("[INIT] Preserving existing database data")
+    init_db(reset_db=reset_db)
     print("[INIT] Database initialized successfully")
 except Exception as e:
     print(f"[INIT] Error initializing database: {str(e)}")
@@ -122,6 +127,11 @@ if os.path.exists(FRONTEND_DIR):
     print(f"[INIT] Static files mounted successfully")
 else:
     print(f"[INIT] WARNING: Frontend directory not found, static files not mounted")
+
+# Health check endpoint для Docker
+@app.get('/api/health')
+async def health_check():
+    return {"status": "ok", "message": "Server is running"}
 
 # Регистрация
 @app.post('/api/register')
@@ -663,4 +673,8 @@ if __name__ == '__main__':
         if hasattr(route, 'path') and hasattr(route, 'methods'):
             print(f"  {list(route.methods)} {route.path}")
     print("=" * 50)
-    uvicorn.run(app, host='127.0.0.1', port=8001, log_level='info')
+    # В Docker используем 0.0.0.0, локально - 127.0.0.1
+    host = os.getenv('HOST', '127.0.0.1')
+    port = int(os.getenv('PORT', '8001'))
+    print(f"[INIT] Starting server on {host}:{port}")
+    uvicorn.run(app, host=host, port=port, log_level='info')
