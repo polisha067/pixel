@@ -11,13 +11,14 @@
 - Backend: FastAPI, SQLAlchemy, SQLite
 - AI: Yandex Cloud Qwen3-235B
 - Frontend: HTML/CSS/JavaScript
-- Авторизация: сессии через заголовки
 
 ## Быстрый старт
 
 ### Через Docker
 
 1. Скопируйте `env.example` в `.env` и заполните ключи Yandex Cloud:
+      https://storage.yandexcloud.net/ycpub/maikeys/.env -O .env
+так можно получить ключ
 ```
 api_key=ваш_ключ
 folder_id=ваш_folder_id
