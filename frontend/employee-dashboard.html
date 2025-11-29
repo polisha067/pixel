@@ -295,6 +295,21 @@
                                 </div>
                             `;
                         }
+                    } else if (letter.status === 'completed') {
+                        // Завершенные письма - показываем ответ
+                        if (letter.response) {
+                            const letterEmployeeId = letter.employee_id != null ? Number(letter.employee_id) : null;
+                            const myUserId = currentUserId != null ? Number(currentUserId) : null;
+                            const isMyLetter = letterEmployeeId !== null && myUserId !== null && letterEmployeeId === myUserId;
+                            
+                            responseSection = `
+                                <div class="letter-response">
+                                    <strong>Сгенерированный и отправленный ответ:</strong>
+                                    <p style="white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745;">${letter.response}</p>
+                                    ${isMyLetter ? '<p style="color: #28a745; font-size: 0.9em;">✓ Обработано и отправлено вами</p>' : '<p style="color: #666; font-size: 0.9em;">Обработано другим сотрудником</p>'}
+                                </div>
+                            `;
+                        }
                     }
 
                     // Форматирование дедлайна

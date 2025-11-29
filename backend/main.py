@@ -540,6 +540,39 @@ async def take_letter(
     
     return {"message": "Letter taken in work"}
 
+def get_client_letter_history(author_id: int, exclude_letter_id: int, db: Session, limit: int = 10):
+    """
+    Получает историю предыдущих писем клиента для использования в контексте генерации ответа.
+    
+    Args:
+        author_id: ID автора (клиента)
+        exclude_letter_id: ID письма, которое нужно исключить из истории (текущее письмо)
+        db: Сессия базы данных
+        limit: Максимальное количество писем для включения в историю
+    
+    Returns:
+        Список словарей с информацией о письмах для передачи в generate_answer
+    """
+    # Получаем предыдущие письма клиента, отсортированные по дате (новые сначала)
+    # Исключаем текущее письмо и берем только завершенные (с ответами)
+    previous_letters = db.query(Letter).filter(
+        Letter.author_id == author_id,
+        Letter.id != exclude_letter_id,
+        Letter.status == LetterStatus.COMPLETED,
+        Letter.response.isnot(None)
+    ).order_by(Letter.created_at.desc()).limit(limit).all()
+    
+    # Форматируем для передачи в generate_answer
+    history = []
+    for prev_letter in previous_letters:
+        history.append({
+            'content': prev_letter.content,
+            'response': prev_letter.response,
+            'created_at': prev_letter.created_at.isoformat() if prev_letter.created_at else None
+        })
+    
+    return history
+
 # Сотрудник: обработать письмо (генерировать ответ)
 @app.post('/api/letters/{letter_id}/process')
 async def process_letter(
@@ -559,8 +592,11 @@ async def process_letter(
         raise HTTPException(status_code=400, detail="Letter is not in your work")
     
     try:
-        # Генерация ответа через нейронку
-        generated_response = await generate_answer(letter.content)
+        # Получаем историю предыдущих писем клиента
+        letters_history = get_client_letter_history(letter.author_id, letter.id, db)
+        
+        # Генерация ответа через нейронку с учетом истории переписки
+        generated_response = await generate_answer(letter.content, letters_history=letters_history)
         letter.response = generated_response
         letter.status = LetterStatus.RESPONSE_READY
         letter.updated_at = get_msk_now()
@@ -624,8 +660,11 @@ async def regenerate_letter_response(
         raise HTTPException(status_code=400, detail="Letter is not in regeneratable state")
     
     try:
-        # Генерация нового ответа через нейронку
-        generated_response = await generate_answer(letter.content)
+        # Получаем историю предыдущих писем клиента
+        letters_history = get_client_letter_history(letter.author_id, letter.id, db)
+        
+        # Генерация нового ответа через нейронку с учетом истории переписки
+        generated_response = await generate_answer(letter.content, letters_history=letters_history)
         letter.response = generated_response
         letter.status = LetterStatus.RESPONSE_READY
         letter.updated_at = get_msk_now()

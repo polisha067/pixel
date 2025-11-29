@@ -60,13 +60,78 @@ async def generate_mail(email, instructions):
     except Exception as e:
         raise Exception(f"Yandex API error: {str(e)}")
 
-async def generate_answer(incoming_letter):
+
+def format_letter_history(letters_history):
+    """
+    Форматирует историю писем для включения в контекст генерации.
+    
+    Args:
+        letters_history: Список словарей с ключами 'content', 'response', 'created_at'
+    
+    Returns:
+        Отформатированная строка с историей переписки
+    """
+    if not letters_history:
+        return ""
+    
+    formatted_history = []
+    formatted_history.append("═══════════════════════════════════════════════════════════════")
+    formatted_history.append("ИСТОРИЯ ПРЕДЫДУЩЕЙ ПЕРЕПИСКИ С КЛИЕНТОМ")
+    formatted_history.append("═══════════════════════════════════════════════════════════════")
+    formatted_history.append("")
+    
+    for idx, letter in enumerate(letters_history, 1):
+        formatted_history.append(f"--- Письмо #{idx} (дата: {letter.get('created_at', 'не указана')}) ---")
+        formatted_history.append("")
+        formatted_history.append("КЛИЕНТ:")
+        formatted_history.append(letter.get('content', ''))
+        formatted_history.append("")
+        
+        # Если есть ответ, добавляем его
+        if letter.get('response'):
+            formatted_history.append("ОТВЕТ БАНКА:")
+            formatted_history.append(letter.get('response', ''))
+            formatted_history.append("")
+        
+        formatted_history.append("-" * 60)
+        formatted_history.append("")
+    
+    formatted_history.append("═══════════════════════════════════════════════════════════════")
+    formatted_history.append("")
+    formatted_history.append("ВАЖНО: Учитывай эту историю при генерации ответа. Если клиент продолжает предыдущую тему или задает уточняющие вопросы - обязательно используй контекст из истории переписки.")
+    formatted_history.append("")
+    
+    return "\n".join(formatted_history)
+
+
+async def generate_answer(incoming_letter, letters_history=None):
+    """
+    Генерирует ответ на входящее письмо с учетом истории переписки.
+    
+    Args:
+        incoming_letter: Текст текущего письма от клиента
+        letters_history: Список предыдущих писем клиента (опционально).
+                        Каждый элемент должен быть словарем с ключами:
+                        'content' (текст письма), 'response' (ответ банка, если есть),
+                        'created_at' (дата создания)
+    
+    Returns:
+        Сгенерированный ответ
+    """
     email_analisys = await analyze_mail(incoming_letter)
     email_type = email_analisys.get("email_type", "OTHER")
     specialization = email_analisys.get("specialization", None)
     
     # Получаем релевантный контекст из базы знаний ПСБ
     rag_context = await get_rag_context(incoming_letter)
+    
+    # Форматируем историю переписки, если она есть
+    history_context = ""
+    if letters_history:
+        history_context = format_letter_history(letters_history)
+        print(f"[HISTORY] Используется история из {len(letters_history)} предыдущих писем")
+        if history_context:
+            print(f"[HISTORY] История сформирована ({len(history_context)} символов)")
     
     # Логируем для отладки
     if rag_context:
@@ -75,6 +140,6 @@ async def generate_answer(incoming_letter):
     else:
         print("[RAG] ВНИМАНИЕ: Контекст из базы знаний не извлечен!")
     
-    instruction = get_generation_promt(email_type, rag_context, specialization)
+    instruction = get_generation_promt(email_type, rag_context, specialization, history_context)
     r = await generate_mail(incoming_letter, instructions=instruction)
     return r
