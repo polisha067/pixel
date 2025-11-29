@@ -139,6 +139,7 @@ def extract_relevant_context(query: str, knowledge_files: Dict[str, str]) -> str
         return ""
     
     # Определяем релевантные файлы
+
     relevant_filenames = determine_relevant_files(query)
     
     # Собираем контекст из релевантных файлов

@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from models import User, Letter, LetterStatus, UserBusinessInfo, get_msk_now
 from database import get_db
@@ -119,3 +119,10 @@ def get_client_letter_history(author_id: int, exclude_letter_id: int, db: Sessio
         })
     
     return history
+
+def check_employee_role(user: User):
+    if user.role != "employee":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав. Требуется роль employee"
+        )

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from models import (
@@ -10,7 +10,7 @@ from ai_funcs import generate_answer, analyze_mail, extract_business_info
 from database import get_db
 from funcs import (
     get_current_user, save_business_info, get_user_business_info,
-    get_client_letter_history, user_sessions
+    get_client_letter_history, user_sessions, check_employee_role
 )
 from datetime import datetime, timedelta
 from sqlalchemy import or_
@@ -651,3 +651,32 @@ async def mail_generator(request: MailRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating email: {str(e)}")
 
+@router.get("/user/{user_id}", summary="Получить статистику пользователя")
+async def get_user_stats(
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    # Проверяем права доступа текущего пользователя
+    check_employee_role(current_user)
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Пользователь не найден"
+        )
+
+    business_info = get_user_business_info(user_id, db)
+
+    return {
+        "user_id": target_user.id,
+        "email": target_user.email,
+        "first_name": target_user.first_name,
+        "last_name": target_user.last_name,
+        "role": target_user.role,
+        "business_info": business_info,
+        "requested_by": {
+            "user_id": current_user.id,
+            "email": current_user.email
+        }
+    }
